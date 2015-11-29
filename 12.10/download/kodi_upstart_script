@@ -1,4 +1,4 @@
-# KODI-minimal
+# kodi-minimal
 # init KODI environment and starts KODI in fullscreen (if asked to do so)
 description     "KODI-minimal"
 author          "Luigi Capriotti - Modified by Alanwww1, wakeup stuff: Mianos"
@@ -30,4 +30,3 @@ end script
 pre-stop script
   touch /tmp/noRestartKODI
 end script
-

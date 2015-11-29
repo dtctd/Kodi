@@ -23,7 +23,6 @@ NAME=kodi
 
 # app name
 DESC=KODI
-
 # user
 RUN_AS=kodi
 
@@ -60,4 +59,3 @@ case "$1" in
 esac
 
 exit 0
-

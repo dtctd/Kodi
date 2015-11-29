@@ -135,4 +135,3 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="15c2", ATTRS{idProduct}=="0044" RUN+="/bin/s
 SUBSYSTEM=="usb", ATTRS{idVendor}=="15c2", ATTRS{idProduct}=="0045" RUN+="/bin/sh -c 'echo enabled > /sys$env{DEVPATH}/../power/wakeup'"
 # device specifics unknown
 SUBSYSTEM=="usb", ATTRS{idVendor}=="15c2", ATTRS{idProduct}=="0046" RUN+="/bin/sh -c 'echo enabled > /sys$env{DEVPATH}/../power/wakeup'"
-

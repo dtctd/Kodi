@@ -1,28 +1,28 @@
 #!/bin/bash
 #
-# @author   Sander de Wit
-# @date     2015-11-29
-# @version  1.0
+# @original author   Bram van Oploo
+# @author  Matt Filetto
+# @date     2013-12-27
+# @version  0.93
 #
 
 KODI_USER="kodi"
 THIS_FILE=$0
-SCRIPT_VERSION="1.0"
+SCRIPT_VERSION="0.93"
 VIDEO_DRIVER=""
 HOME_DIRECTORY="/home/$KODI_USER/"
+KERNEL_DIRECTORY=$HOME_DIRECTORY"kernel/"
 TEMP_DIRECTORY=$HOME_DIRECTORY"temp/"
 ENVIRONMENT_FILE="/etc/environment"
 CRONTAB_FILE="/etc/crontab"
 DIST_UPGRADE_FILE="/etc/cron.d/dist_upgrade.sh"
 DIST_UPGRADE_LOG_FILE="/var/log/updates.log"
-KODI_INIT_FILE="/etc/init.d/kodi"
 KODI_ADDONS_DIR=$HOME_DIRECTORY".kodi/addons/"
 KODI_USERDATA_DIR=$HOME_DIRECTORY".kodi/userdata/"
 KODI_KEYMAPS_DIR=$KODI_USERDATA_DIR"keymaps/"
 KODI_ADVANCEDSETTINGS_FILE=$KODI_USERDATA_DIR"advancedsettings.xml"
 KODI_INIT_CONF_FILE="/etc/init/kodi.conf"
 KODI_XSESSION_FILE="/home/kodi/.xsession"
-KODI_CUSTOM_EXEC="/usr/bin/runkodi"
 UPSTART_JOB_FILE="/lib/init/upstart-job"
 XWRAPPER_FILE="/etc/X11/Xwrapper.config"
 GRUB_CONFIG_FILE="/etc/default/grub"
@@ -35,18 +35,24 @@ MODULES_FILE="/etc/modules"
 REMOTE_WAKEUP_RULES_FILE="/etc/udev/rules.d/90-enable-remote-wakeup.rules"
 AUTO_MOUNT_RULES_FILE="/etc/udev/rules.d/media-by-label-auto-mount.rules"
 SYSCTL_CONF_FILE="/etc/sysctl.conf"
-POWERMANAGEMENT_DIR="/var/lib/polkit-1/localauthority/50-local.d/"
-#DOWNLOAD_URL="https://github.com/Bram77/xbmc-ubuntu-minimal/raw/master/12.10/download/"
-DOWNLOAD_URL="https://github.com/dtctd/Kodi"
-KODI_PPA=" ppa:team-xbmc/ppa"
+RSYSLOG_FILE="/etc/init/rsyslog.conf"
+POWERMANAGEMENT_DIR="/etc/polkit-1/localauthority/50-local.d/"
+DOWNLOAD_URL="https://github.com/dtctd/Kodi/raw/master/12.10/download/"
+KODI_PPA="ppa:team-xbmc/ppa"
+KODI_PPA_UNSTABLE="ppa:team-xbmc/unstable"
 HTS_TVHEADEND_PPA="ppa:jabbors/hts-stable"
 OSCAM_PPA="ppa:oscam/ppa"
+XSWAT_PPA="ppa:ubuntu-x-swat/x-updates"
+MESA_PPA="ppa:wsnipex/mesa"
 
-LOG_FILE=$HOME_DIRECTORY"kodi_installation.log"
+LOG_FILE=$HOME_DIRECTORY"KODI_installation.log"
 DIALOG_WIDTH=70
-SCRIPT_TITLE="KODI installation script v$SCRIPT_VERSION"
+SCRIPT_TITLE="KODI ubuntuniversal minimal installer v$SCRIPT_VERSION for Ubuntu 12.04 to 14.04 by Me"
 
 GFX_CARD=$(lspci |grep VGA |awk -F: {' print $3 '} |awk {'print $1'} |tr [a-z] [A-Z])
+
+# import Ubuntu release variables
+. /etc/lsb-release
 
 ## ------ START functions ---------
 
@@ -243,9 +249,9 @@ function move()
 
 function installDependencies()
 {
-    echo "-- Installing installation dependencies..."
+    echo "-- Installing script dependencies..."
     echo ""
-
+        sudo apt-get -y install python-software-properties > /dev/null 2>&1
 	sudo apt-get -y install dialog software-properties-common > /dev/null 2>&1
 }
 
@@ -277,7 +283,7 @@ function applyKodiNiceLevelPermissions()
 {
 	createFile $SYSTEM_LIMITS_FILE
     appendToFile $SYSTEM_LIMITS_FILE "$KODI_USER             -       nice            -1"
-	showInfo "Allowed Kodi to prioritize threads"
+	showInfo "Allowed KODI to prioritize threads"
 }
 
 function addUserToRequiredGroups()
@@ -288,13 +294,35 @@ function addUserToRequiredGroups()
 	sudo adduser $KODI_USER fuse > /dev/null 2>&1
 	sudo adduser $KODI_USER cdrom > /dev/null 2>&1
 	sudo adduser $KODI_USER plugdev > /dev/null 2>&1
+        sudo adduser $KODI_USER dialout > /dev/null 2>&1
 	showInfo "KODI user added to required groups"
 }
 
 function addKodiPpa()
 {
-    showInfo "Adding Kodi PPA..."
-	IS_ADDED=$(addRepository "$KODI_PPA")
+    cmd=(dialog --title "Which KODI PPA?" \
+        --backtitle "$SCRIPT_TITLE" \
+        --radiolist "Which KODI PPA would you like to use? The official stable PPA will install the current release version of KODI or you can use the unstable PPA which will install the current testing (Alpha/Beta/RC) version of KODI. If unsure use the default Official PPA." 
+        15 $DIALOG_WIDTH 6)
+        
+    options=(1 "Official PPA - Install the release version." on
+             2 "Unstable PPA - Install the Alpha/Beta/RC version." off)
+         
+    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+
+    case ${choice//\"/} in
+        1)
+            showInfo "Adding official team-xbmc PPA..."
+            IS_ADDED=$(addRepository "$KODI_PPA")
+            ;;
+        2)
+            showInfo "Adding unstable team-xbmc PPA..."
+            IS_ADDED=$(addRepository "$KODI_PPA_UNSTABLE")
+            ;;
+        *)
+            addKodiPpa
+            ;;
+    esac
 }
 
 function distUpgrade()
@@ -315,10 +343,12 @@ function installPowerManagement()
 {
     showInfo "Installing power management packages..."
     createDirectory "$TEMP_DIRECTORY" 1 0
-    IS_INSTALLED=$(aptInstall policykit-1)
-    IS_INSTALLED=$(aptInstall upower)
-    IS_INSTALLED=$(aptInstall udisks)
-    IS_INSTALLED=$(aptInstall acpi-support)
+    sudo apt-get install -y policykit-1 > /dev/null 2>&1
+    sudo apt-get install -y upower > /dev/null 2>&1
+    sudo apt-get install -y udisks > /dev/null 2>&1
+    sudo apt-get install -y acpi-support > /dev/null 2>&1
+    sudo apt-get install -y consolekit > /dev/null 2>&1
+    sudo apt-get install -y pm-utils > /dev/null 2>&1
 	download $DOWNLOAD_URL"custom-actions.pkla"
 	createDirectory "$POWERMANAGEMENT_DIR"
     IS_MOVED=$(move $TEMP_DIRECTORY"custom-actions.pkla" "$POWERMANAGEMENT_DIR")
@@ -327,11 +357,14 @@ function installPowerManagement()
 function installAudio()
 {
     showInfo "Installing audio packages....\n!! Please make sure no used channels are muted !!"
-    IS_INSTALLED=$(aptInstall linux-sound-base)
-    IS_INSTALLED=$(aptInstall alsa-base)
-    IS_INSTALLED=$(aptInstall alsa-utils)
-    IS_INSTALLED=$(aptInstall libasound2)
+    sudo apt-get install -y linux-sound-base alsa-base alsa-utils > /dev/null 2>&1
     sudo alsamixer
+}
+
+function Installnfscommon()
+{
+    showInfo "Installing ubuntu package nfs-common (kernel based NFS clinet support)"
+    sudo apt-get install -y nfs-common > /dev/null 2>&1
 }
 
 function installLirc()
@@ -400,23 +433,7 @@ function installOscam()
 function installKodi()
 {
     showInfo "Installing Kodi..."
-    IS_INSTALLED=$(aptInstall kodi)
-}
-
-function enableDirtyRegionRendering()
-{
-    showInfo "Enabling KODI dirty region rendering..."
-	createDirectory "$TEMP_DIRECTORY" 1 0
-	handleFileBackup $KODI_ADVANCEDSETTINGS_FILE 0 1
-	download $DOWNLOAD_URL"dirty_region_rendering.xml"
-	createDirectory "$KODI_USERDATA_DIR" 0 0
-	IS_MOVED=$(move $TEMP_DIRECTORY"dirty_region_rendering.xml" "$KODI_ADVANCEDSETTINGS_FILE")
-
-	if [ "$IS_MOVED" == "1" ]; then
-        showInfo "KODI dirty region rendering enabled"
-    else
-        showError "KODI dirty region rendering could not be enabled"
-    fi
+    IS_INSTALLED=$(aptInstall Kodi)
 }
 
 function installKodiAddonRepositoriesInstaller()
@@ -446,6 +463,56 @@ function configureAtiDriver()
     sudo aticonfig --set-pcs-u32=MCIL,HWUVD_H264Level51Support,1 > /dev/null 2>&1
 }
 
+function ChooseATIDriver()
+{
+         cmd=(dialog --title "Radeon-OSS drivers" \
+                     --backtitle "$SCRIPT_TITLE" \
+             --radiolist "It seems you are running ubuntu 13.10. You may install updated radeon oss drivers with VDPAU support. this allows for HD audio amung other things. This is the new default for Gotham and XVBA is depreciated. bottom line. this is what you want." 
+             15 $DIALOG_WIDTH 6)
+        
+        options=(1 "Yes- install radon-OSS (will install 3.13 kernel)" on
+                 2 "No - Keep old fglrx drivers (NOT RECOMENDED)" off)
+         
+        choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+
+         case ${choice//\"/} in
+             1)
+                     InstallRadeonOSS
+                 ;;
+             2)
+                     VIDEO_DRIVER="fglrx"
+                 ;;
+             *)
+                     ChooseATIDriver
+                 ;;
+         esac
+}
+
+function InstallRadeonOSS()
+{
+    VIDEO_DRIVER="xserver-xorg-video-ati"
+    if [ ${DISTRIB_RELEASE//[^[:digit:]]} -ge 1404 ]; then
+        showinfo "installing mesa VDPAU packages..."
+        sudo apt-get install -y mesa-vdpau-drivers vdpauinfo
+        showinfo "Radeon OSS VDPAU install completed"
+    else
+        showInfo "Adding Wsnsprix MESA PPA..."
+        IS_ADDED=$(addRepository "$MESA_PPA")
+        sudo apt-get update
+        sudo apt-get dist-upgrade
+        showinfo "installing reguired mesa patches..."
+        sudo apt-get install -y libg3dvl-mesa vdpauinfo linux-firmware
+        showinfo "Mesa patches installation complete"
+        mkdir -p ~/kernel
+        cd ~/kernel
+        showinfo "Downloading and installing 3.13 kernel (may take awhile)..."
+        wget http://kernel.ubuntu.com/~kernel-ppa/mainline/v3.13.5-trusty/linux-headers-3.13.5-031305-generic_3.13.5-031305.201402221823_amd64.deb http://kernel.ubuntu.com/~kernel-ppa/mainline/v3.13.5-trusty/linux-headers-3.13.5-031305_3.13.5-031305.201402221823_all.deb http://kernel.ubuntu.com/~kernel-ppa/mainline/v3.13.5-trusty/linux-image-3.13.5-031305-generic_3.13.5-031305.201402221823_amd64.deb
+        sudo dpkg -i *3.13.5*deb
+        sudo rm -rf ~/kernel
+        showinfo "kernel Installation Complete, Radeon OSS VDPAU install completed"
+    fi
+}
+
 function disbaleAtiUnderscan()
 {
 	sudo kill $(pidof X) > /dev/null 2>&1
@@ -460,15 +527,93 @@ function enableAtiUnderscan()
     showInfo "Underscan successfully enabled"
 }
 
+function addXswatPpa()
+{
+    showInfo "Adding x-swat/x-updates ppa (“Ubuntu-X” team).."
+	IS_ADDED=$(addRepository "$XSWAT_PPA")
+}
+
+function InstallLTSEnablementStack()
+{
+     if [ "$DISTRIB_RELEASE" == "12.04" ]; then
+         cmd=(dialog --title "LTS Enablement Stack (LTS Backports)" \
+                     --backtitle "$SCRIPT_TITLE" \
+             --radiolist "Enable Ubuntu's LTS Enablement stack to update to 12.04.3. The updates include the 3.8 kernel as well as a lot of updates to Xorg. On a non-minimal install these would be selected by default. Do you have to install/enable this?" 
+             15 $DIALOG_WIDTH 6)
+        
+        options=(1 "No - keep 3.2.xx kernel (default)" on
+                 2 "Yes - Install (recomended)" off)
+         
+        choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+
+         case ${choice//\"/} in
+             1)
+                     #do nothing
+                 ;;
+             2)
+                     LTSEnablementStack
+                 ;;
+             *)
+                     InstallLTSEnablementStack
+                 ;;
+         esac
+     fi
+}
+
+function LTSEnablementStack()
+{
+showInfo "Installing ubuntu LTS Enablement Stack..."
+sudo apt-get install --install-recommends -y linux-generic-lts-raring xserver-xorg-lts-raring libgl1-mesa-glx-lts-raring > /dev/null 2>&1
+# HACK: dpkg is still processsing during next functions, allow some time to settle
+sleep 2
+showInfo "ubuntu LTS Enablement Stack install completed..."
+#sleep again to make sure dpkg is freed for next function
+sleep 3
+}
+
+function selectNvidiaDriver()
+{
+    cmd=(dialog --title "Choose which nvidia driver version to install (required)" \
+                --backtitle "$SCRIPT_TITLE" \
+        --radiolist "Some driver versions play nicely with different cards, Please choose one!" 
+        15 $DIALOG_WIDTH 6)
+        
+   options=(1 "304.88 - ubuntu LTS default (default)" on
+            2 "319.xx - Shipped with OpenELEC" off
+            3 "331.xx - latest (will install additional x-swat ppa)" off)
+         
+    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+
+    case ${choice//\"/} in
+        1)
+                VIDEO_DRIVER="nvidia-current"
+            ;;
+        2)
+                VIDEO_DRIVER="nvidia-319-updates"
+            ;;
+        3)
+                addXswatPpa
+                VIDEO_DRIVER="nvidia-331"
+            ;;
+        *)
+                selectNvidiaDriver
+            ;;
+    esac
+}
+
 function installVideoDriver()
 {
-    showInfo "Installing $GFX_CARD video drivers (may take a while)..."
-    
     if [[ $GFX_CARD == NVIDIA ]]; then
-        VIDEO_DRIVER="nvidia-current"
+        selectNvidiaDriver
     elif [[ $GFX_CARD == ATI ]] || [[ $GFX_CARD == AMD ]] || [[ $GFX_CARD == ADVANCED ]]; then
-        VIDEO_DRIVER="fglrx"
+        if [ ${DISTRIB_RELEASE//[^[:digit:]]} -ge 1310 ]; then
+            ChooseATIDriver
+            else
+            VIDEO_DRIVER="fglrx"
+            fi
     elif [[ $GFX_CARD == INTEL ]]; then
+        VIDEO_DRIVER="i965-va-driver"
+    elif [[ $GFX_CARD == VMWARE ]]; then
         VIDEO_DRIVER="i965-va-driver"
     else
         cleanUp
@@ -481,11 +626,12 @@ function installVideoDriver()
         echo ""
         exit
     fi
-    
+
+    showInfo "Installing $GFX_CARD video drivers (may take a while)..."
     IS_INSTALLED=$(aptInstall $VIDEO_DRIVER)
 
-    if [ "$IS_INSTALLED" == "1"]; then
-        if [ "$GFX_CARD" == "ATI" ] || [ "$GFX_CARD" == "AMD" ]; then
+    if [ "IS_INSTALLED=$(isPackageInstalled $VIDEO_DRIVER) == 1" ]; then
+        if [ "$GFX_CARD" == "ATI" ] || [ "$GFX_CARD" == "AMD" ] || [ "$GFX_CARD" == "ADVANCED" ]; then
             configureAtiDriver
 
             dialog --title "Disable underscan" \
@@ -550,61 +696,10 @@ function removeAutorunFiles()
     fi
 }
 
-function installKodiInitScript()
-{
-    removeAutorunFiles
-    showInfo "Installing KODI init.d autorun support..."
-    createDirectory "$TEMP_DIRECTORY" 1 0
-	download $DOWNLOAD_URL"kodi_init_script"
-	
-	if [ -e $TEMP_DIRECTORY"kodi_init_script" ]; then
-	    if [ -e $KODI_INIT_FILE ]; then
-		    sudo rm $KODI_INIT_FILE > /dev/null 2>&1
-	    fi
-	    
-	    IS_MOVED=$(move $TEMP_DIRECTORY"kodi_init_script" "$KODI_INIT_FILE")
-
-	    if [ "$IS_MOVED" == "1" ]; then
-	        sudo chmod a+x "$KODI_INIT_FILE" > /dev/null 2>&1
-	        sudo update-rc.d kodi defaults > /dev/null 2>&1
-	        
-	        if [ "$?" == "0" ]; then
-                showInfo "KODI autorun succesfully configured"
-            else
-                showError "KODI autorun script could not be activated (error code: $?)"
-            fi
-	    else
-	        showError "KODI autorun script could not be installed"
-	    fi
-	else
-	    showError "Download of KODI autorun script failed"
-	fi
-}
-
-function installKodiRunFile()
-{
-    showInfo "Installing custom Kodi startup executable..."
-    createDirectory "$TEMP_DIRECTORY" 1 0
-    download $DOWNLOAD_URL"kodi_run_script"
-    
-    if [ -e $TEMP_DIRECTORY"kodi_run_script" ]; then
-        IS_MOVED=$(move $TEMP_DIRECTORY"kodi_run_script" "$KODI_CUSTOM_EXEC")
-    
-        if [ "$IS_MOVED" == "1" ]; then
-            sudo chmod a+x "$KODI_CUSTOM_EXEC" > /dev/null 2>&1
-            showInfo "Installation of custom Kodi startup executable successfull"
-        else
-            showError "Installation of custom Kodi startup executable failed"
-        fi
-    else
-        showError "Download of custom Kodi startup executable failed"
-    fi
-}
-
 function installKodiUpstartScript()
 {
     removeAutorunFiles
-    showInfo "Installing Kodi upstart autorun support..."
+    showInfo "Installing KODI upstart autorun support..."
     createDirectory "$TEMP_DIRECTORY" 1 0
 	download $DOWNLOAD_URL"kodi_upstart_script_2"
 
@@ -614,10 +709,10 @@ function installKodiUpstartScript()
 	    if [ "$IS_MOVED" == "1" ]; then
 	        sudo ln -s "$UPSTART_JOB_FILE" "$KODI_INIT_FILE" > /dev/null 2>&1
 	    else
-	        showError "Kodi upstart configuration failed"
+	        showError "KODI upstart configuration failed"
 	    fi
 	else
-	    showError "Download of Kodi upstart configuration file failed"
+	    showError "Download of KODI upstart configuration file failed"
 	fi
 }
 
@@ -648,8 +743,6 @@ function installNyxBoardKeymap()
 function installKodiBootScreen()
 {
     showInfo "Installing KODI boot screen (please be patient)..."
-    #IS_INSTALLED=$(aptInstall v86d)
-    #IS_INSTALLED=$(aptInstall plymouth-label)
     sudo apt-get install -y plymouth-label v86d > /dev/null
     createDirectory "$TEMP_DIRECTORY" 1 0
     download $DOWNLOAD_URL"plymouth-theme-kodi-logo.deb"
@@ -678,10 +771,14 @@ function applyScreenResolution()
     if [[ $GFX_CARD == INTEL ]]; then
         GRUB_CONFIG="usbcore.autosuspend=-1 video=uvesafb:mode_option=$RESOLUTION-24,mtrr=3,scroll=ywrap"
     fi
+    if [[ $RADEON_OSS == 1 ]]; then
+        GRUB_CONFIG="usbcore.autosuspend=-1 video=uvesafb:mode_option=$RESOLUTION-24,mtrr=3,scroll=ywrap radeon.audio=1 radeon.dpm=1 quiet splash"
+    fi
     
     handleFileBackup "$GRUB_CONFIG_FILE" 1 0
     appendToFile "$GRUB_CONFIG_FILE" "GRUB_CMDLINE_LINUX=\"$GRUB_CONFIG\""
     appendToFile "$GRUB_CONFIG_FILE" "GRUB_GFXMODE=$RESOLUTION"
+    appendToFile "$GRUB_CONFIG_FILE" "GRUB_RECORDFAIL_TIMEOUT=0"
     
     handleFileBackup "$INITRAMFS_MODULES_FILE" 1 0
     appendToFile "$INITRAMFS_MODULES_FILE" "uvesafb mode_option=$RESOLUTION-24 mtrr=3 scroll=ywrap"
@@ -698,17 +795,10 @@ function applyScreenResolution()
 
 function installLmSensors()
 {
-    showInfo "Installing temperature monitoring package (apply all defaults)..."
+    showInfo "Installing temperature monitoring package (will apply all defaults)..."
     aptInstall lm-sensors
-    clear
-    echo ""
-    echo "$(tput setaf 2)$(tput bold)INSTALLATION INFO: Please confirm all questions with ENTER (applying the suggested option)."
-    echo "$(tput setaf 2)The KODI installation will continue automatically when finished.$(tput sgr0)"
-    echo ""
-    echo ""
-    
-    sudo sensors-detect
-    
+    sudo yes "" | sensors-detect > /dev/null 2>&1
+
     if [ ! -e "$KODI_ADVANCEDSETTINGS_FILE" ]; then
 	    createDirectory "$TEMP_DIRECTORY" 1 0
 	    download $DOWNLOAD_URL"temperature_monitoring.xml"
@@ -734,41 +824,16 @@ function reconfigureXServer()
 	showInfo "X-server successfully configured"
 }
 
-function selectKodiStartupMethod()
-{
-    cmd=(dialog --backtitle "KODI autorun method"
-        --radiolist "Please select the method used to start KODI (default recommended):" 
-        15 $DIALOG_WIDTH 3)
-        
-    options=(1 "init.d" on
-            2 "upstart (experimental)" off)
-         
-    choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-
-    case ${choice//\"/} in
-        1)
-            installKodiInitScript
-            ;;
-        2)
-            installKodiUpstartScript
-            ;;
-        *)
-            selectStartupMethod
-            ;;
-    esac
-}
-
 function selectKodiTweaks()
 {
-    cmd=(dialog --title "Optional Kodi tweaks and additions" 
+    cmd=(dialog --title "Optional KODI tweaks and additions" 
         --backtitle "$SCRIPT_TITLE" 
         --checklist "Plese select to install or apply:" 
         15 $DIALOG_WIDTH 6)
         
-    options=(1 "Enable dirty region rendering (improved performance)" on
-            2 "Enable temperature monitoring (confirm with ENTER)" on
-            3 "Install Addon Repositories Installer addon" on
-            4 "Apply improved Pulse-Eight Motorola NYXboard keymap" off)
+   options=(1 "Enable temperature monitoring (confirm with ENTER)" on
+            2 "Install Addon Repositories Installer addon" off
+            3 "Apply improved Pulse-Eight Motorola NYXboard keymap" off)
             
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 
@@ -776,15 +841,12 @@ function selectKodiTweaks()
     do
         case ${choice//\"/} in
             1)
-                enableDirtyRegionRendering
-                ;;
-            2)
                 installLmSensors
                 ;;
-            3)
+            2)
                 installKodiAddonRepositoriesInstaller 
                 ;;
-            4)
+            3)
                 installNyxBoardKeymap 
                 ;;
         esac
@@ -837,7 +899,8 @@ function selectAdditionalPackages()
     options=(1 "Lirc (IR remote support)" off
             2 "Hts tvheadend (live TV backend)" off
             3 "Oscam (live HDTV decryption tool)" off
-            4 "Automatic upgrades (every 4 hours)" off)
+            4 "Automatic upgrades (every 4 hours)" off
+            5 "OS-based NFS Support (nfs-common)" off)
             
     choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 
@@ -856,6 +919,9 @@ function selectAdditionalPackages()
             4)
                 installAutomaticDistUpgrade
                 ;;
+            5)
+                Installnfscommon
+                ;;
         esac
     done
 }
@@ -863,9 +929,23 @@ function selectAdditionalPackages()
 function optimizeInstallation()
 {
     showInfo "Optimizing installation..."
+
+    sudo echo "none /tmp tmpfs defaults 0 0" >> /etc/fstab
+
     sudo service apparmor stop > /dev/null &2>1
+    sleep 2
     sudo service apparmor teardown > /dev/null &2>1
-    sudo apt-get -y remove apparmor > /dev/null &2>1
+    sleep 2
+    sudo update-rc.d -f apparmor remove > /dev/null &2>1	
+    sleep 2
+    sudo apt-get purge apparmor -y > /dev/null &2>1
+    sleep 3
+    
+    createDirectory "$TEMP_DIRECTORY" 1 0
+	handleFileBackup $RSYSLOG_FILE 0 1
+	download $DOWNLOAD_URL"rsyslog.conf"
+	move $TEMP_DIRECTORY"rsyslog.conf" "$RSYSLOG_FILE" 1
+    
     handleFileBackup "$SYSCTL_CONF_FILE" 1 0
     createFile "$SYSCTL_CONF_FILE" 1 0
     appendToFile "$SYSCTL_CONF_FILE" "dev.cdrom.lock=0"
@@ -876,15 +956,16 @@ function cleanUp()
 {
     showInfo "Cleaning up..."
 	sudo apt-get -y autoremove > /dev/null 2>&1
+        sleep 1
 	sudo apt-get -y autoclean > /dev/null 2>&1
+        sleep 1
 	sudo apt-get -y clean > /dev/null 2>&1
+        sleep 1
+        sudo chown -R kodi:kodi /home/kodi/.kodi > /dev/null 2>&1
+        showInfo "fixed permissions for kodi userdata folder"
 	
 	if [ -e "$TEMP_DIRECTORY" ]; then
 	    sudo rm -R "$TEMP_DIRECTORY" > /dev/null 2>&1
-	fi
-	
-	if [ -e "$HOME_DIRECTORY$THIS_FILE" ]; then
-	    rm "$HOME_DIRECTORY$THIS_FILE" > /dev/null 2>&1
 	fi
 }
 
@@ -902,7 +983,7 @@ function rebootMachine()
             echo ""
             echo "Installation complete. Rebooting..."
             echo ""
-            sudo reboot now > /dev/null 2>&1
+            sudo reboot > /dev/null 2>&1
 	        ;;
 	    1) 
 	        showInfo "Installation complete. Not rebooting."
@@ -949,7 +1030,7 @@ distUpgrade
 installVideoDriver
 installXinit
 installKodi
-selectKodiStartupMethod
+installKodiUpstartScript
 installKodiBootScreen
 selectScreenResolution
 reconfigureXServer
@@ -957,6 +1038,7 @@ installPowerManagement
 installAudio
 selectKodiTweaks
 selectAdditionalPackages
+InstallLTSEnablementStack
 allowRemoteWakeup
 optimizeInstallation
 cleanUp
