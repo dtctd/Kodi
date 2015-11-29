@@ -1,0 +1,19 @@
+# kodi-upstart
+# starts KODI on startup by using xinit.
+# by default runs as kodi, to change edit below.
+env USER=kodi
+
+description     "Kodi-barebones-upstart-script"
+author          "Matt Filetto"
+
+start on (filesystem and stopped udevtrigger)
+stop on runlevel [016]
+
+# tell upstart to respawn the process if abnormal exit
+respawn
+
+script
+  exec su -c "xinit /usr/bin/kodi --standalone :0" $USER
+  #exec su -c "xinit /usr/bin/kodi -d --standalone -- -nocursor :0" $USER ##Kill Cursor/Console X and mouse pointer on KODI start.
+end script
+
