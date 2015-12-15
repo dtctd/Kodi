@@ -1077,6 +1077,9 @@ ProxyPassReverse /sonarr http://localhost:8989/sonarr
 ProxyPass /couchpotato http://localhost:5050/couchpotato
 ProxyPassReverse /couchpotato http://localhost:5050/couchpotato
 
+ProxyPass /deluge http://localhost:8112
+ProxyPassReverse /deluge http://localhost:8112
+
 RewriteEngine on
 RewriteRule ^/kodi$ /kodi/ [R]
 
