@@ -1168,7 +1168,7 @@ library = ${MOVIEDIR}/Movies/
 
 [renamer]
 nfo_name = <filename>.orig.<ext>
-from = ${DOWNLOADDIR}/Downloads/Complete/Movies/
+from = ${DOWNLOADDIR}/Downloads/Complete/
 force_every = 1
 move_leftover = False
 to = ${MOVIEDIR}/Movies/
@@ -1298,7 +1298,7 @@ enabled = 0
 paused = False
 host = http://localhost:9091
 delete_files = True
-directory = /data/Downloads/Complete/Movies/
+directory = ${MOVIEDIR}/Movies/
 remove_complete = True
 password = ${PASSWORD}
 
@@ -1807,7 +1807,7 @@ EOF
     echo "name = Movies" >> /home/${UNAME}/.sabnzbd/config.ini
     echo "script = Default" >> /home/${UNAME}/.sabnzbd/config.ini
     echo 'newzbin = ""' >> /home/${UNAME}/.sabnzbd/config.ini
-    echo "dir = "${DOWNLOADDIR}"/Downloads/Complete/Movies" >> /home/${UNAME}/.sabnzbd/config.ini
+    echo "dir = "${DOWNLOADDIR}"/Downloads/Complete" >> /home/${UNAME}/.sabnzbd/config.ini
 
     dialog --infobox "SABnzbd has finished installing. Continuing with next install." 6 50
 }
