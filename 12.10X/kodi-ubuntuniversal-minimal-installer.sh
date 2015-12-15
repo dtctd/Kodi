@@ -42,7 +42,8 @@ APPS=$(dialog --checklist "Choose which apps you would like installed:" 12 50 4 
 "Deluge" "" on \
 "Sonarr" "" on \
 "Sickrage" "" on \
-"CouchPotato" "" on 3>&1 1>&2 2>&3)
+"CouchPotato" "" on \
+"ReverseProxy" "" on 3>&1 1>&2 2>&3)
 
 USERNAME=$(dialog --title "Username" --inputbox "Enter the username you want to use to log into your scripts" 10 50 3>&1 1>&2 2>&3)
 PASSWORD=$(dialog --title "Password" --passwordbox "Enter the Password you want to use to log into your scripts" 10 50 3>&1 1>&2 2>&3)
@@ -719,6 +720,10 @@ function removeAutorunFiles()
 	    
 	    if [ -e "$KODI_XSESSION_FILE" ]; then
 	        sudo rm "$KODI_XSESSION_FILE" > /dev/null 2>&1
+	    fi
+
+	    if [ -e "$DELUGED_INIT_CONF_FILE" ]; then
+	        sudo rm "$DELUGED_INIT_CONF_FILE" > /dev/null 2>&1
 	    fi
 	    
 	    showInfo "Old autorun script successfully removed"
@@ -1875,6 +1880,58 @@ EOF
     dialog --title "FINISHED" --infobox "Sonarr has finished installing. Continuing with Next install." 6 50
 }
 
+function installDelugeUpstartScript() {
+    DELUGED_INIT_CONF_FILE="/etc/init/deluged.conf"
+    removeAutorunFiles
+    showInfo "Installing Deluge upstart autorun support..."
+    createDirectory "$TEMP_DIRECTORY" 1 0
+	download ${DOWNLOAD_URL}"deluged.conf"
+
+	if [ -e ${TEMP_DIRECTORY}"deluged.conf" ]; then
+	    IS_MOVED=$(move ${TEMP_DIRECTORY}"deluged.conf" "$DELUGED_INIT_CONF_FILE")
+
+	    if [ "$IS_MOVED" == "1" ]; then
+	        sudo ln -s "$UPSTART_JOB_FILE" "$KODI_INIT_FILE" > /dev/null 2>&1
+	    else
+	        showError "Deluged upstart configuration failed"
+	    fi
+	else
+	    showError "Download of Deluged upstart configuration file failed"
+	fi
+}
+
+function installDelugeWebUpstartScript() {
+    DELUGED_INIT_CONF_FILE="/etc/init/deluge-web.conf"
+    removeAutorunFiles
+    showInfo "Installing Deluge Web upstart autorun support..."
+    createDirectory "$TEMP_DIRECTORY" 1 0
+	download ${DOWNLOAD_URL}"deluge-web.conf"
+
+	if [ -e ${TEMP_DIRECTORY}"deluge-web.conf" ]; then
+	    IS_MOVED=$(move ${TEMP_DIRECTORY}"deluge-web.conf" "$DELUGED_INIT_CONF_FILE")
+
+	    if [ "$IS_MOVED" == "1" ]; then
+	        sudo ln -s "$UPSTART_JOB_FILE" "$KODI_INIT_FILE" > /dev/null 2>&1
+	    else
+	        showError "Deluged Web upstart configuration failed"
+	    fi
+	else
+	    showError "Download of Deluged Web upstart configuration file failed"
+	fi
+}
+
+function installDeluge () {
+    dialog --title "Deluge Daemon" --infobox "Installing the Deluge Daemon" 6 50
+    sudo adduser --disabled-password --system --home /var/lib/deluge --gecos "SamRo Deluge server" --group deluge
+    sudo touch /var/log/deluged.log
+    sudo touch /var/log/deluge-web.log
+    sudo chown deluge:deluge /var/log/deluge*
+
+    sudo apt-get -y install deluged deluge-webui >> ${LOGFILE}
+    installDelugeUpstartScript
+    installDelugeWebUpstartScript
+}
+
 ## ------- END functions -------
 
 if [[ ${APPS} == *CouchPotato* ]]; then
@@ -1920,6 +1977,10 @@ if [[ ${APPS} == *SABnzbd* ]]; then
     installSABnzbd
 fi
 
+if [[ ${APPS} == *Deluge* ]]; then
+    installDeluge
+fi
+
 if [[ ${APPS} == *Sonarr* ]]; then
     installSonarr
 fi
@@ -1958,12 +2019,13 @@ if [[ ${APPS} == *KODI* ]]; then
     cleanUp
 fi
 
-installApache
-IPADDR=$(/sbin/ifconfig eth0 | awk '/inet / { print $2 }' | sed 's/addr://')
+if [[ ${APPS} == *ReverseProxy* ]]; then
+    installApache
+    IPADDR=$(/sbin/ifconfig eth0 | awk '/inet / { print $2 }' | sed 's/addr://')
 
-dialog --title "FINISHED" --msgbox "Apache rewrite installed. Use https://$IPADDR/sonarr to access sonarr, same for couchpotato and sabnzbd" 10 50
-dialog --title "FINISHED" --msgbox "All done. A restart will be triggered within 10-20 seconds" 10 50
-
+    dialog --title "FINISHED" --msgbox "Apache rewrite installed. Use https://$IPADDR/sonarr to access sonarr, same for couchpotato and sabnzbd" 10 50
+    dialog --title "FINISHED" --msgbox "All done. A restart will be triggered within 10-20 seconds" 10 50
+fi
 
 if [[ ${APPS} == *SABnzbd* ]]; then
     start sabnzbd
