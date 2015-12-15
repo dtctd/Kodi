@@ -1084,6 +1084,9 @@ ProxyPassReverse /couchpotato http://localhost:5050/couchpotato
 ProxyPass /deluge http://localhost:8112
 ProxyPassReverse /deluge http://localhost:8112
 
+ProxyPass /sickrage http://localhost:8081
+ProxyPassReverse /sickrage http://localhost:8081
+
 RewriteEngine on
 RewriteRule ^/kodi$ /kodi/ [R]
 
