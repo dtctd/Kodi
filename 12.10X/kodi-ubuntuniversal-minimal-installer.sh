@@ -33,7 +33,7 @@ if [ ! -d "/home/$UNAME" ]; then
 fi
 
 DLCLIENT=$(dialog --checklist "Choose which download method you would like installed:" 12 50 4 \
-"Torrent" "" on \
+"Torrents" "" on \
 "Newsgroups" "" on 3>&1 1>&2 2>&3)
 
 APPS=$(dialog --checklist "Choose which apps you would like installed:" 12 50 4 \
@@ -94,9 +94,6 @@ if [[ ${APPS} == *KODI* ]]; then
 fi
 ### Finished gathering all input
 
-DELUGED_INIT_CONF_FILE="/etc/init/deluged.conf"
-DELUGEWEB_INIT_CONF_FILE="/etc/init/deluge-web.conf"
-
 THIS_FILE=$0
 SCRIPT_VERSION="0.1"
 VIDEO_DRIVER=""
@@ -136,7 +133,7 @@ XSWAT_PPA="ppa:ubuntu-x-swat/x-updates"
 MESA_PPA="ppa:wsnipex/mesa"
 
 DIALOG_WIDTH=70
-SCRIPT_TITLE="KODI ubuntuniversal minimal installer v$SCRIPT_VERSION for Ubuntu 12.04 to 14.04 by Me"
+SCRIPT_TITLE="KODI ubuntu universal installer v$SCRIPT_VERSION for Ubuntu 12.04 to 14.04 by Me"
 
 GFX_CARD=$(lspci |grep VGA |awk -F: {' print $3 '} |awk {'print $1'} |tr [a-z] [A-Z])
 
@@ -1104,7 +1101,6 @@ function installCouchpotato () {
     dialog --title "COUCHPOTATO" --infobox "Installing Git and Python" 6 50
     apt-get -y install git-core python >> ${LOGFILE}
 
-
     dialog --title "COUCHPOTATO" --infobox "Killing and version of couchpotato currently running" 6 50
     sleep 2
     killall couchpotato* >> ${LOGFILE}
@@ -1890,83 +1886,98 @@ EOF
     dialog --title "FINISHED" --infobox "Sonarr has finished installing. Continuing with Next install." 6 50
 }
 
-function installDelugeUpstartScript() {
-    removeAutorunFiles
-    showInfo "Installing Deluge upstart autorun support..." > /dev/null 2>&1
-    createDirectory "$TEMP_DIRECTORY" 1 0
-	download ${DOWNLOAD_URL}"deluged.conf"
-
-	if [ -e ${TEMP_DIRECTORY}"deluged.conf" ]; then
-	    IS_MOVED=$(move ${TEMP_DIRECTORY}"deluged.conf" "$DELUGED_INIT_CONF_FILE")
-
-	    if [ "$IS_MOVED" == "1" ]; then
-	        sudo ln -s "$UPSTART_JOB_FILE" "$KODI_INIT_FILE" > /dev/null 2>&1
-	    else
-	        showError "Deluged upstart configuration failed"
-	    fi
-	else
-	    showError "Download of Deluged upstart configuration file failed"
-	fi
-}
-
-function installDelugeWebUpstartScript() {
-    removeAutorunFiles
-    showInfo "Installing Deluge Web upstart autorun support..." > /dev/null 2>&1
-    createDirectory "$TEMP_DIRECTORY" 1 0
-	download ${DOWNLOAD_URL}"deluge-web.conf"
-
-	if [ -e ${TEMP_DIRECTORY}"deluge-web.conf" ]; then
-	    IS_MOVED=$(move ${TEMP_DIRECTORY}"deluge-web.conf" "$DELUGEWEB_INIT_CONF_FILE")
-
-	    if [ "$IS_MOVED" == "1" ]; then
-	        sudo ln -s "$UPSTART_JOB_FILE" "$KODI_INIT_FILE" > /dev/null 2>&1
-	    else
-	        showError "Deluged Web upstart configuration failed"
-	    fi
-	else
-	    showError "Download of Deluged Web upstart configuration file failed"
-	fi
-}
-
 function installDeluge () {
-    dialog --title "Deluge Daemon" --infobox "Installing Deluge" 6 50
+    dialog --title "Deluge" --infobox "Installing Deluge" 6 50
     sudo adduser --disabled-password --system --home /var/lib/deluge --gecos "SamRo Deluge server" --group deluge > /dev/null 2>&1
     sudo touch /var/log/deluged.log > /dev/null 2>&1
     sudo touch /var/log/deluge-web.log > /dev/null 2>&1
     sudo chown deluge:deluge /var/log/deluge* > /dev/null 2>&1
 
+    dialog --title "Deluge" --infobox "Killing and versions of Deluge currently running" 6 50
+    sleep 2
+    killall deluge* >> ${LOGFILE}
+
+    dialog --title "Deluge" --infobox "Downloading the latest version of Deluge" 6 50
+    sleep 2
     sudo apt-get -y install deluged deluge-webui >> ${LOGFILE}
-    installDelugeUpstartScript
-    installDelugeWebUpstartScript
-    dialog --title "Deluge Daemon" --infobox "Installation of Deluge is successful" 6 50
+
+    dialog --title "SickRage" --infobox "Installing upstart configurations" 6 50
+    sleep 2
+cat > /etc/init/deluge-web.conf << EOF
+# deluge-web - Deluge Web UI
+#
+# The Web UI component of Deluge BitTorrent client, connects to deluged and
+# provides a web application interface for users. Default url: http://localhost:8112
+
+description "Deluge Web UI"
+author "Deluge Team"
+
+start on started deluged
+stop on stopping deluged
+
+respawn
+respawn limit 5 30
+
+env uid=deluge
+env gid=deluge
+env umask=027
+
+exec start-stop-daemon -S -c $uid:$gid -k $umask -x /usr/bin/deluge-web
+EOF
+cat > /etc/init/deluged.conf << EOF
+# deluged - Deluge daemon
+#
+# The daemon component of Deluge BitTorrent client. Deluge UI clients
+# connect to this daemon via DelugeRPC protocol.
+
+description "Deluge daemon"
+author "Deluge Team"
+
+start on filesystem and static-network-up
+stop on runlevel [016]
+
+respawn
+respawn limit 5 30
+
+env uid=deluge
+env gid=deluge
+env umask=000
+
+exec start-stop-daemon -S -c $uid:$gid -k $umask -x /usr/bin/deluged -- -d
+EOF
+    dialog --title "FINISHED" --infobox "Installation of Deluge is successful" 6 50
+}
+
+function installSickRage () {
+    dialog --title "SickRage" --infobox "Installing SickRage" 6 50
+    sudo apt-get -y install python-cheetah unrar python-pip python-dev libssl-dev git >> ${LOGFILE}
+    sudo pip install pyopenssl==0.13.1 > /dev/null 2>&1
+
+    dialog --title "SickRage" --infobox "Killing and versions of sickrage currently running" 6 50
+    sleep 2
+    killall sickrage* >> ${LOGFILE}
+
+    dialog --title "SickRage" --infobox "Downloading the latest version of SickRage" 6 50
+    sleep 2
+    sudo git clone https://github.com/SickRage/SickRage.git /home/${UNAME}/.sickrage >> ${LOGFILE}
+
+    dialog --title "SickRage" --infobox "Installing upstart configurations" 6 50
+    sleep 2
+cat > /etc/init/sickrage.conf << EOF
+description "Upstart Script to run SickRage as a service on Ubuntu/Debian based distros"
+setuid ${UNAME}
+
+start on runlevel [2345]
+stop on runlevel [016]
+
+respawn
+
+exec /home/${UNAME}/.sickrage/SickBeard.py
+EOF
+    dialog --title "FINISHED" --infobox "Installation of SickRage is successful" 6 50
 }
 
 ## ------- END functions -------
-
-if [[ ${APPS} == *CouchPotato* ]]; then
-    CP=1
-else
-    CP=0
-fi
-
-if [[ ${APPS} == *SABnzbd* ]]; then
-    SAB=1
-else
-    SAB=0
-fi
-
-if [[ ${APPS} == *Sonarr* ]]; then
-    SONARR=1
-else
-    SONARR=0
-fi
-
-if [[ ${APPS} == *KODI* ]]; then
-    KODI=1
-else
-    KODI=0
-fi
-
 dialog --title "Automated Kodi Installation" --infobox "Setting things up" 6 50
 
 mkdir ${MOVIEDIR}/Movies
@@ -1984,6 +1995,10 @@ chmod -R 775 ${DOWNLOADDIR}/Downloads
 
 if [[ ${APPS} == *SABnzbd* ]]; then
     installSABnzbd
+fi
+
+if [[ ${APPS} == *SickRage* ]]; then
+    installSickRage
 fi
 
 if [[ ${APPS} == *Deluge* ]]; then
@@ -2046,6 +2061,10 @@ fi
 
 if [[ ${APPS} == *CouchPotato* ]]; then
     start couchpotato
+fi
+
+if [[ ${APPS} == *SickRage* ]]; then
+    start sickrage
 fi
 
 sleep 10
