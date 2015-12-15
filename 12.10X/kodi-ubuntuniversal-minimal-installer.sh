@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Gathering all input required for a full automated installation
+### Gathering all input required for a full automated installation
 LOGFILE="/var/log/automatedKodi.install.log"
 export NCURSES_NO_UTF8_ACS=1
 echo 'Dpkg::Progress-Fancy "1";' > /etc/apt/apt.conf.d/99progressbar
@@ -91,7 +91,6 @@ if [[ ${APPS} == *KODI* ]]; then
 	    KODI_USER="kodi"
     fi
 fi
-
 ### Finished gathering all input
 
 THIS_FILE=$0
@@ -410,7 +409,7 @@ function installAudio() {
 }
 
 function Installnfscommon() {
-    showInfo "Installing ubuntu package nfs-common (kernel based NFS clinet support)"
+    showInfo "Installing ubuntu package nfs-common (kernel based NFS client support)"
     sudo apt-get install -y nfs-common > /dev/null 2>&1
 }
 
@@ -509,7 +508,7 @@ function ChooseATIDriver() {
              --radiolist "It seems you are running ubuntu 13.10. You may install updated radeon oss drivers with VDPAU support. this allows for HD audio amung other things. This is the new default for Gotham and XVBA is depreciated. bottom line. this is what you want." 
              15 ${DIALOG_WIDTH} 6)
         
-        options=(1 "Yes- install radon-OSS (will install 3.13 kernel)" on
+        options=(1 "Yes- install radeon-OSS (will install 3.13 kernel)" on
                  2 "No - Keep old fglrx drivers (NOT RECOMENDED)" off)
          
         choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
@@ -538,7 +537,7 @@ function InstallRadeonOSS() {
         IS_ADDED=$(addRepository "$MESA_PPA")
         sudo apt-get update
         sudo apt-get dist-upgrade
-        showinfo "installing reguired mesa patches..."
+        showinfo "installing required mesa patches..."
         sudo apt-get install -y libg3dvl-mesa vdpauinfo linux-firmware
         showinfo "Mesa patches installation complete"
         mkdir -p ~/kernel
@@ -595,11 +594,11 @@ function InstallLTSEnablementStack() {
 }
 
 function LTSEnablementStack() {
-showInfo "Installing ubuntu LTS Enablement Stack..."
+showInfo "Installing Ubuntu LTS Enablement Stack..."
 sudo apt-get install --install-recommends -y linux-generic-lts-raring xserver-xorg-lts-raring libgl1-mesa-glx-lts-raring > /dev/null 2>&1
 # HACK: dpkg is still processsing during next functions, allow some time to settle
 sleep 2
-showInfo "ubuntu LTS Enablement Stack install completed..."
+showInfo "Ubuntu LTS Enablement Stack install completed..."
 #sleep again to make sure dpkg is freed for next function
 sleep 3
 }
@@ -1917,19 +1916,19 @@ chmod -R 775 ${MOVIEDIR}/Movies
 chmod -R 775 ${TVSHOWDIR}/TVShows
 chmod -R 775 ${DOWNLOADDIR}/Downloads
 
-if [[ "$SAB" == "1" ]]; then
+if [[ ${APPS} == *SABnzbd* ]]; then
     installSABnzbd
 fi
 
-if [[ "$SONARR" == "1" ]]; then
+if [[ ${APPS} == *Sonarr* ]]; then
     installSonarr
 fi
 
-if [[ "$CP" == "1" ]]; then
+if [[ ${APPS} == *CouchPotato* ]]; then
     installCouchpotato
 fi
 
-if [[ "$KODI" == "1" ]]; then
+if [[ ${APPS} == *KODI* ]]; then
     echo ""
     installDependencies
     echo "Loading installer..."
@@ -1965,15 +1964,16 @@ IPADDR=$(/sbin/ifconfig eth0 | awk '/inet / { print $2 }' | sed 's/addr://')
 dialog --title "FINISHED" --msgbox "Apache rewrite installed. Use https://$IPADDR/sonarr to access sonarr, same for couchpotato and sabnzbd" 10 50
 dialog --title "FINISHED" --msgbox "All done. A restart will be triggered within 10-20 seconds" 10 50
 
-if [[ "$SAB" == "1" ]]; then
+
+if [[ ${APPS} == *SABnzbd* ]]; then
     start sabnzbd
 fi
 
-if [[ "$SONARR" == "1" ]]; then
+if [[ ${APPS} == *Sonarr* ]]; then
     start sonarr
 fi
 
-if [[ "$CP" == "1" ]]; then
+if [[ ${APPS} == *CouchPotato* ]]; then
     start couchpotato
 fi
 
