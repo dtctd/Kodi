@@ -1925,10 +1925,10 @@ function installDelugeWebUpstartScript() {
 
 function installDeluge () {
     dialog --title "Deluge Daemon" --infobox "Installing the Deluge Daemon" 6 50
-    sudo adduser --disabled-password --system --home /var/lib/deluge --gecos "SamRo Deluge server" --group deluge
-    sudo touch /var/log/deluged.log
-    sudo touch /var/log/deluge-web.log
-    sudo chown deluge:deluge /var/log/deluge*
+    sudo adduser --disabled-password --system --home /var/lib/deluge --gecos "SamRo Deluge server" --group deluge > /dev/null 2>&1
+    sudo touch /var/log/deluged.log > /dev/null 2>&1
+    sudo touch /var/log/deluge-web.log > /dev/null 2>&1
+    sudo chown deluge:deluge /var/log/deluge* > /dev/null 2>&1
 
     sudo apt-get -y install deluged deluge-webui >> ${LOGFILE}
     installDelugeUpstartScript
@@ -2005,7 +2005,7 @@ if [[ ${APPS} == *KODI* ]]; then
     addUserToRequiredGroups
     addKodiPpa
     distUpgrade
-    installVideoDriver
+    #installVideoDriver
     installXinit
     installKodi
     installKodiUpstartScript
