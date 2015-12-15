@@ -94,6 +94,9 @@ if [[ ${APPS} == *KODI* ]]; then
 fi
 ### Finished gathering all input
 
+DELUGED_INIT_CONF_FILE="/etc/init/deluged.conf"
+DELUGEWEB_INIT_CONF_FILE="/etc/init/deluge-web.conf"
+
 THIS_FILE=$0
 SCRIPT_VERSION="0.1"
 VIDEO_DRIVER=""
@@ -724,6 +727,10 @@ function removeAutorunFiles()
 
 	    if [ -e "$DELUGED_INIT_CONF_FILE" ]; then
 	        sudo rm "$DELUGED_INIT_CONF_FILE" > /dev/null 2>&1
+	    fi
+
+	    if [ -e "$DELUGEWEB_INIT_CONF_FILE" ]; then
+	        sudo rm "$DELUGEWEB_INIT_CONF_FILE" > /dev/null 2>&1
 	    fi
 	    
 	    showInfo "Old autorun script successfully removed"
@@ -1884,9 +1891,8 @@ EOF
 }
 
 function installDelugeUpstartScript() {
-    DELUGED_INIT_CONF_FILE="/etc/init/deluged.conf"
     removeAutorunFiles
-    showInfo "Installing Deluge upstart autorun support..."
+    showInfo "Installing Deluge upstart autorun support..." > /dev/null 2>&1
     createDirectory "$TEMP_DIRECTORY" 1 0
 	download ${DOWNLOAD_URL}"deluged.conf"
 
@@ -1904,14 +1910,13 @@ function installDelugeUpstartScript() {
 }
 
 function installDelugeWebUpstartScript() {
-    DELUGED_INIT_CONF_FILE="/etc/init/deluge-web.conf"
     removeAutorunFiles
-    showInfo "Installing Deluge Web upstart autorun support..."
+    showInfo "Installing Deluge Web upstart autorun support..." > /dev/null 2>&1
     createDirectory "$TEMP_DIRECTORY" 1 0
 	download ${DOWNLOAD_URL}"deluge-web.conf"
 
 	if [ -e ${TEMP_DIRECTORY}"deluge-web.conf" ]; then
-	    IS_MOVED=$(move ${TEMP_DIRECTORY}"deluge-web.conf" "$DELUGED_INIT_CONF_FILE")
+	    IS_MOVED=$(move ${TEMP_DIRECTORY}"deluge-web.conf" "$DELUGEWEB_INIT_CONF_FILE")
 
 	    if [ "$IS_MOVED" == "1" ]; then
 	        sudo ln -s "$UPSTART_JOB_FILE" "$KODI_INIT_FILE" > /dev/null 2>&1
@@ -1924,7 +1929,7 @@ function installDelugeWebUpstartScript() {
 }
 
 function installDeluge () {
-    dialog --title "Deluge Daemon" --infobox "Installing the Deluge Daemon" 6 50
+    dialog --title "Deluge Daemon" --infobox "Installing Deluge" 6 50
     sudo adduser --disabled-password --system --home /var/lib/deluge --gecos "SamRo Deluge server" --group deluge > /dev/null 2>&1
     sudo touch /var/log/deluged.log > /dev/null 2>&1
     sudo touch /var/log/deluge-web.log > /dev/null 2>&1
@@ -1933,6 +1938,7 @@ function installDeluge () {
     sudo apt-get -y install deluged deluge-webui >> ${LOGFILE}
     installDelugeUpstartScript
     installDelugeWebUpstartScript
+    dialog --title "Deluge Daemon" --infobox "Installation of Deluge is successful" 6 50
 }
 
 ## ------- END functions -------
