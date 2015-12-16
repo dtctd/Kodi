@@ -1909,6 +1909,7 @@ function installDeluge () {
     sudo touch /var/log/deluged.log > /dev/null 2>&1
     sudo touch /var/log/deluge-web.log > /dev/null 2>&1
     sudo chown deluge:deluge /var/log/deluge* > /dev/null 2>&1
+    sudo adduser ${UNAME} deluge > /dev/null 2>&1
 
     dialog --title "Deluge" --infobox "Killing and versions of Deluge currently running" 6 50
     sleep 2
@@ -1940,7 +1941,7 @@ env uid=deluge
 env gid=deluge
 env umask=027
 
-exec start-stop-daemon -S -c $uid:$gid -k $umask -x /usr/bin/deluge-web
+exec start-stop-daemon -S -c \$uid:\$gid -k \$umask -x /usr/bin/deluge-web
 EOF
 cat > /etc/init/deluged.conf << EOF
 # deluged - Deluge daemon
@@ -1961,7 +1962,7 @@ env uid=deluge
 env gid=deluge
 env umask=000
 
-exec start-stop-daemon -S -c $uid:$gid -k $umask -x /usr/bin/deluged -- -d
+exec start-stop-daemon -S -c \$uid:\$gid -k \$umask -x /usr/bin/deluged -- -d
 EOF
     dialog --title "FINISHED" --infobox "Installation of Deluge is successful" 6 50
 }
