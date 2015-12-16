@@ -45,6 +45,12 @@ APPS=$(dialog --checklist "Choose which apps you would like installed:" 12 50 4 
 "CouchPotato" "" on \
 "ReverseProxy" "" on 3>&1 1>&2 2>&3)
 
+if [[ ${APPS} == *ReverseProxy* ]]; then
+    PROXY=$(dialog --checklist "Choose which Reverse Proxy you would like installed:" 12 50 4 \
+    "Apache" "" on \
+    "Nginx" "" on 3>&1 1>&2 2>&3)
+fi
+
 USERNAME=$(dialog --title "Username" --inputbox "Enter the username you want to use to log into your web applications" 10 50 3>&1 1>&2 2>&3)
 PASSWORD=$(dialog --title "Password" --passwordbox "Enter the Password you want to use to log into your web applications" 10 50 3>&1 1>&2 2>&3)
 DOWNLOADDIR=$(dialog --title "Storage Directory" --inputbox "Enter the directory where you would like downloads saved. (/home/john would save completed downloads in /home/john/Downloads/Complete" 10 50 /home/${UNAME} 3>&1 1>&2 2>&3)
@@ -1031,6 +1037,84 @@ control_c() {
     cleanUp
     echo "Installation aborted..."
     quit
+}
+
+function installNginx () {
+    dialog --title "Nginx" --infobox "Installing Nginx" 6 50
+    apt-get install nginx -y
+
+cat << EOF > /etc/nginx/sites-available/reverse
+server {
+    listen 443;
+    server_name mydomain;
+
+    ssl_certificate           /etc/nginx/mycert.crt;
+    ssl_certificate_key       /etc/nginx/mycert.key;
+
+    ssl on;
+    ssl_session_cache  builtin:1000  shared:SSL:10m;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS;
+    ssl_prefer_server_ciphers on;
+
+location /sabnzbd {
+		proxy_pass http://127.0.0.1:8080;
+		proxy_set_header Host \$host;
+		proxy_set_header X-Real-IP \$remote_addr;
+		proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+	}
+
+location /sonarr {
+		proxy_pass http://127.0.0.1:8989;
+		proxy_set_header Host \$host;
+		proxy_set_header X-Real-IP \$remote_addr;
+		proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+	}
+
+location /couchpotato {
+		proxy_pass http://127.0.0.1:5050;
+		proxy_set_header Host \$host;
+		proxy_set_header X-Real-IP \$remote_addr;
+		proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+	}
+
+location /deluge {
+    proxy_pass http://127.0.0.1:8086/;
+    proxy_set_header  X-Deluge-Base "/deluge/";
+    proxy_cookie_domain 127.0.0.1 localhost;
+    proxy_cookie_path / /deluge;
+
+    auth_basic "Restricted";
+    auth_basic_user_file /etc/nginx/conf.d/params/password;
+
+    proxy_redirect          off;
+    proxy_buffering         off;
+    proxy_set_header        Host            \$host;
+    proxy_set_header        X-Real-IP       \$remote_addr;
+    proxy_set_header        X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+
+location /sickrage {
+    proxy_pass http://127.0.0.1:8081;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+
+location /kodi {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+
+
+}
+EOF
+    unlink /etc/nginx/sites-enabled/default
+    ln -s /etc/nginx/sites-available/reverse /etc/nginx/sites-enabled/reverse
+    service nginx restart
+
 }
 
 function installApache () {
@@ -2064,7 +2148,7 @@ enable_https = 0
 notify_on_login = 0
 https_cert = server.crt
 https_key = server.key
-handle_reverse_proxy = 0
+handle_reverse_proxy = 1
 use_nzbs = 0
 use_torrents = 1
 nzb_method = blackhole
@@ -2989,28 +3073,22 @@ if [[ ${APPS} == *KODI* ]]; then
 fi
 
 if [[ ${APPS} == *ReverseProxy* ]]; then
-    installApache
-    IPADDR=$(/sbin/ifconfig eth0 | awk '/inet / { print $2 }' | sed 's/addr://')
+    if [[ ${PROXY} == *Apache* ]]; then
+        installApache
+        IPADDR=$(/sbin/ifconfig eth0 | awk '/inet / { print $2 }' | sed 's/addr://')
 
-    dialog --title "FINISHED" --msgbox "Apache rewrite installed. Use https://$IPADDR/sonarr to access sonarr, same for couchpotato and sabnzbd" 10 50
-    dialog --title "FINISHED" --msgbox "All done. A restart will be triggered within 10-20 seconds" 10 50
+        dialog --title "FINISHED" --msgbox "Apache rewrite installed. Use https://$IPADDR/sonarr to access sonarr, same for couchpotato and sabnzbd" 10 50
+    fi
+
+    if [[ ${PROXY} == *Nginx* ]]; then
+        installNginx
+        IPADDR=$(/sbin/ifconfig eth0 | awk '/inet / { print $2 }' | sed 's/addr://')
+
+        dialog --title "FINISHED" --msgbox "Nginx rewrite installed. Use https://$IPADDR/sonarr to access sonarr, same for couchpotato and sabnzbd" 10 50
+    fi
 fi
 
-if [[ ${APPS} == *SABnzbd* ]]; then
-    start sabnzbd  > /dev/null 2>&1
-fi
-
-if [[ ${APPS} == *Sonarr* ]]; then
-    start sonarr  > /dev/null 2>&1
-fi
-
-if [[ ${APPS} == *CouchPotato* ]]; then
-    start couchpotato  > /dev/null 2>&1
-fi
-
-if [[ ${APPS} == *SickRage* ]]; then
-    start sickrage  > /dev/null 2>&1
-fi
+dialog --title "FINISHED" --msgbox "All done. A restart will be triggered within 10-20 seconds" 10 50
 
 sleep 10
 rebootMachine
