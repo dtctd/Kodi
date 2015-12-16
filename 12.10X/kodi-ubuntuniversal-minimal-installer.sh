@@ -41,7 +41,7 @@ APPS=$(dialog --checklist "Choose which apps you would like installed:" 12 50 4 
 "SABnzbd" "" on \
 "Deluge" "" on \
 "Sonarr" "" on \
-"Sickrage" "" on \
+"SickRage" "" on \
 "CouchPotato" "" on \
 "ReverseProxy" "" on 3>&1 1>&2 2>&3)
 
@@ -1117,30 +1117,44 @@ function installCouchpotato () {
 
 cat > /etc/init/couchpotato.conf << EOF
 description "Upstart Script to run couchpotato as a service on Ubuntu/Debian based systems"
+
 setuid ${UNAME}
 setgid ${UNAME}
+
 start on runlevel [2345]
 stop on runlevel [016]
+
 respawn
 respawn limit 10 10
+
 exec  /home/${UNAME}/.couchpotato/CouchPotato.py --config_file /home/${UNAME}/.couchpotato/settings.conf --data_dir /home/${UNAME}/.couchpotato/
 EOF
+
+PASSWORDHASH=${PASSWORD} | md5sum
 
 cat << EOF > /home/${UNAME}/.couchpotato/settings.conf
 [core]
 api_key = ${API}
 username = ${USERNAME}
 ssl_key =
+proxy_server =
 ssl_cert =
 data_dir =
+use_proxy = 0
+permission_file = 0755
+proxy_password = 0
+bookmarklet_host = 0
+dereferer = http://www.nullrefer.com/?
 permission_folder = 0755
+dark_theme = False
 development = 0
-url_base = /couchpotato
+proxy_username =
+ipv6 = 0
 debug = 0
 launch_browser = 0
-password = ${PASSWORD}
+password = ${PASSWORDHASH}
 port = 5050
-permission_file = 0755
+url_base = /couchpotato
 show_wizard = 0
 
 [download_providers]
@@ -1163,7 +1177,7 @@ ignored_genres =
 startup_scan = True
 library_refresh_interval = 0
 cleanup = True
-enabled = 1
+enabled = True
 library = ${MOVIEDIR}/Movies/
 
 [renamer]
@@ -1200,7 +1214,7 @@ enabled = False
 name = <filename>-trailer
 
 [blackhole]
-directory = /home/${UNAME}
+directory = ${DOWNLOADDIR}/Downloads/Torrents/
 manual = 0
 enabled = 0
 create_subdir = 0
@@ -1906,6 +1920,7 @@ function installDeluge () {
 
     dialog --title "SickRage" --infobox "Installing upstart configurations" 6 50
     sleep 2
+
 cat > /etc/init/deluge-web.conf << EOF
 # deluge-web - Deluge Web UI
 #
@@ -1966,6 +1981,7 @@ function installSickRage () {
 
     dialog --title "SickRage" --infobox "Installing upstart configurations" 6 50
     sleep 2
+
 cat > /etc/init/sickrage.conf << EOF
 description "Upstart Script to run SickRage as a service on Ubuntu/Debian based distros"
 setuid ${UNAME}
@@ -1983,18 +1999,18 @@ EOF
 ## ------- END functions -------
 dialog --title "Automated Kodi Installation" --infobox "Setting things up" 6 50
 
-mkdir ${MOVIEDIR}/Movies
-mkdir ${TVSHOWDIR}/TVShows
-mkdir ${DOWNLOADDIR}/Downloads
-mkdir ${DOWNLOADDIR}/Downloads/Complete
-mkdir ${DOWNLOADDIR}/Downloads/Incomplete
-mkdir ${DOWNLOADDIR}/Downloads/Torrents
-chown -R ${UNAME}:${UNAME} ${MOVIEDIR}/Movies
-chown -R ${UNAME}:${UNAME} ${TVSHOWDIR}/TVShows
-chown -R ${UNAME}:${UNAME} ${DOWNLOADDIR}/Downloads
-chmod -R 775 ${MOVIEDIR}/Movies
-chmod -R 775 ${TVSHOWDIR}/TVShows
-chmod -R 775 ${DOWNLOADDIR}/Downloads
+sudo mkdir ${MOVIEDIR}/Movies
+sudo mkdir ${TVSHOWDIR}/TVShows
+sudo mkdir ${DOWNLOADDIR}/Downloads
+sudo mkdir ${DOWNLOADDIR}/Downloads/Complete
+sudo mkdir ${DOWNLOADDIR}/Downloads/Incomplete
+sudo mkdir ${DOWNLOADDIR}/Downloads/Torrents
+sudo chown -R ${UNAME}:${UNAME} ${MOVIEDIR}/Movies
+sudo chown -R ${UNAME}:${UNAME} ${TVSHOWDIR}/TVShows
+sudo chown -R ${UNAME}:${UNAME} ${DOWNLOADDIR}/Downloads
+sudo chmod -R 775 ${MOVIEDIR}/Movies
+sudo chmod -R 775 ${TVSHOWDIR}/TVShows
+sudo chmod -R 775 ${DOWNLOADDIR}/Downloads
 
 if [[ ${APPS} == *SABnzbd* ]]; then
     installSABnzbd
