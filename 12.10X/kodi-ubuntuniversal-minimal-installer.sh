@@ -1152,7 +1152,7 @@ respawn limit 10 10
 exec python /home/${UNAME}/.couchpotato/CouchPotato.py
 EOF
 
-PASSWORDHASH=$(printf '%s' '${PASSWORD}' | md5sum | cut -d ' ' -f 1)
+PASSWORDHASH=$(printf '%s' ${PASSWORD} | md5sum | cut -d ' ' -f 1)
 
 cat << EOF > /home/${UNAME}/.couchpotato/settings.conf
 [core]
