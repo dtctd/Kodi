@@ -19,7 +19,7 @@ else
 	exit 0
 fi
 
-UNAME=$(dialog --title "System Username" --inputbox "Enter the user you want your scripts to run as. (Case sensitive, Suggested username is \"kodi\")" 10 50 3>&1 1>&2 2>&3)
+UNAME=$(dialog --title "System Username" --inputbox "Enter the user you want your scripts to run as. (Case sensitive, Suggested username is \"kodi\")" 10 50 kodi 3>&1 1>&2 2>&3)
 
 if [ ! -d "/home/$UNAME" ]; then
   if (dialog --yesno 'The user, '${UNAME}', you entered does not exist. Add new user?' 10 30)
@@ -1064,17 +1064,14 @@ Allow from all
 </Proxy>
 
 <Location />
-Order deny,allow
-deny from all
+Order allow,deny
+allow from all
 </Location>
 
 SSLEngine On
 SSLProxyEngine On
 SSLCertificateFile /etc/ssl/certs/apache.crt
 SSLCertificateKeyFile /etc/ssl/private/apache.key
-
-RewriteEngine on
-RewriteRule ^/kodi$ /kodi/ [R]
 
 ### SABNzbd ###
 <Location /sabnzbd>
@@ -1096,11 +1093,11 @@ RewriteRule ^/kodi$ /kodi/ [R]
 
 ### Deluge ###
 <Location /deluge/>
-    RequestHeader append X-Deluge-Base "/deluge/"
-    ProxyPass http://127.0.0.1:8112
-    ProxyPassReverse http://127.0.0.1:8112
+    ProxyPass http://127.0.0.1:8112/
+    ProxyPassReverse http://127.0.0.1:8112/
     ProxyPassReverseCookieDomain 127.0.0.1 localhost
     ProxyPassReverseCookiePath / /deluge/
+    RequestHeader append X-Deluge-Base "/deluge/"
 </Location>
 
 ### SickRage ###
@@ -1110,6 +1107,9 @@ RewriteRule ^/kodi$ /kodi/ [R]
 </Location>
 
 ### Kodi ###
+RewriteEngine on
+RewriteRule ^/kodi$ /kodi/ [R]
+
 <Location /kodi>
     ProxyPass http://localhost:8080
     ProxyPassReverse http://localhost:8080
@@ -1142,7 +1142,7 @@ description "Upstart Script to run couchpotato as a service on Ubuntu/Debian bas
 
 setuid ${UNAME}
 setgid ${UNAME}
-D
+
 start on runlevel [2345]
 stop on runlevel [016]
 
