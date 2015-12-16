@@ -1149,7 +1149,7 @@ stop on runlevel [016]
 respawn
 respawn limit 10 10
 
-exec  /home/${UNAME}/.couchpotato/CouchPotato.py --config_file /home/${UNAME}/.couchpotato/settings.conf --data_dir /home/${UNAME}/.couchpotato/
+exec python /home/${UNAME}/.couchpotato/CouchPotato.py
 EOF
 
 PASSWORDHASH=$(printf '%s' '${PASSWORD}' | md5sum | cut -d ' ' -f 1)
@@ -1932,7 +1932,7 @@ EOF
 }
 
 function installDeluge () {
-    dialog --title "Deluge" --infobox "Installing Deluge" 6 50
+    dialog --title "Deluge" --infobox "Installing Deluge prerequisites" 6 50
     sudo adduser --disabled-password --system --home /var/lib/deluge --gecos "SamRo Deluge server" --group deluge > /dev/null 2>&1
     sudo touch /var/log/deluged.log > /dev/null 2>&1
     sudo touch /var/log/deluge-web.log > /dev/null 2>&1
@@ -1947,7 +1947,7 @@ function installDeluge () {
     sleep 2
     sudo apt-get -y install deluged deluge-webui >> ${LOGFILE}
 
-    dialog --title "Deluge" --infobox "Installing upstart configurations" 6 50
+    dialog --title "Deluge" --infobox "Installing upstart configurations for Deluge" 6 50
     sleep 2
 
 cat > /etc/init/deluge-web.conf << EOF
@@ -1996,11 +1996,11 @@ EOF
 }
 
 function installSickRage () {
-    dialog --title "SickRage" --infobox "Installing SickRage" 6 50
+    dialog --title "SickRage" --infobox "Installing SickRage prerequisites" 6 50
     sudo apt-get -y install python-cheetah unrar python-pip python-dev libssl-dev git >> ${LOGFILE}
     sudo pip install pyopenssl==0.13.1 > /dev/null 2>&1
 
-    dialog --title "SickRage" --infobox "Killing and versions of sickrage currently running" 6 50
+    dialog --title "SickRage" --infobox "Killing and versions of SickRage currently running" 6 50
     sleep 2
     killall sickrage* >> ${LOGFILE}
 
@@ -2008,7 +2008,7 @@ function installSickRage () {
     sleep 2
     sudo git clone https://github.com/SickRage/SickRage.git /home/${UNAME}/.sickrage > /dev/null 2>&1
 
-    dialog --title "SickRage" --infobox "Installing upstart configurations" 6 50
+    dialog --title "SickRage" --infobox "Installing upstart configurations for SickRage" 6 50
     sleep 2
 
 cat > /etc/init/sickrage.conf << EOF
