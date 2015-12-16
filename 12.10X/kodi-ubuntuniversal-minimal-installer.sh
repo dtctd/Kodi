@@ -45,8 +45,8 @@ APPS=$(dialog --checklist "Choose which apps you would like installed:" 12 50 4 
 "CouchPotato" "" on \
 "ReverseProxy" "" on 3>&1 1>&2 2>&3)
 
-USERNAME=$(dialog --title "Username" --inputbox "Enter the username you want to use to log into your scripts" 10 50 3>&1 1>&2 2>&3)
-PASSWORD=$(dialog --title "Password" --passwordbox "Enter the Password you want to use to log into your scripts" 10 50 3>&1 1>&2 2>&3)
+USERNAME=$(dialog --title "Username" --inputbox "Enter the username you want to use to log into your web applications" 10 50 3>&1 1>&2 2>&3)
+PASSWORD=$(dialog --title "Password" --passwordbox "Enter the Password you want to use to log into your web applications" 10 50 3>&1 1>&2 2>&3)
 DOWNLOADDIR=$(dialog --title "Storage Directory" --inputbox "Enter the directory where you would like downloads saved. (/home/john would save completed downloads in /home/john/Downloads/Complete" 10 50 /home/${UNAME} 3>&1 1>&2 2>&3)
 DOWNLOADDIR=${DOWNLOADDIR%/}
 MOVIEDIR=$(dialog --title "Movie Directory" --inputbox "Enter the directory where you would like movies saved. (/home/john would save completed movies in /home/john/Movies" 10 50 /home/${UNAME} 3>&1 1>&2 2>&3)
@@ -75,7 +75,7 @@ if [[ ${APPS} == *CouchPotato* ]] || [[ ${APPS} == *Sonarr* ]]; then
 	    API=$(date +%s | sha256sum | base64 | head -c 32 ; echo)
 	fi
 	if [[ ${DLCLIENT} == *Torrent* ]]; then
-	    BLACKHOLE=$(dialog --title "Blackhole" --inputbox "Please enter your Blackhole folder" 10 50 3>&1 1>&2 2>&3)
+	    BLACKHOLE=$(dialog --title "Blackhole" --inputbox "Please enter your Blackhole folder" 10 50 ${DOWNLOADDIR}/Torrents 3>&1 1>&2 2>&3)
     fi
 fi
 
@@ -1041,7 +1041,7 @@ function installApache () {
     a2enmod proxy_http > /dev/null 2>&1
     a2enmod rewrite > /dev/null 2>&1
     a2enmod ssl > /dev/null 2>&1
-    openssl req -x509 -nodes -days 7200 -newkey rsa:2048 -subj "/C=US/ST=NONE/L=NONE/O=Private/CN=Private" -keyout /etc/ssl/private/apache.key -out /etc/ssl/certs/apache.crt
+    openssl req -x509 -nodes -days 7200 -newkey rsa:2048 -subj "/C=US/ST=NONE/L=NONE/O=Private/CN=Private" -keyout /etc/ssl/private/apache.key -out /etc/ssl/certs/apache.crt > /dev/null 2>&1
 
 cat << EOF > /etc/apache2/sites-available/000-default.conf
 <VirtualHost *:80>
@@ -1097,7 +1097,7 @@ ErrorLog /var/log/apache2/error.log
 LogLevel warn
 </VirtualHost>
 EOF
-    service apache2 restart
+    service apache2 restart >> ${LOGFILE}
 }
 
 function installCouchpotato () {
@@ -1110,7 +1110,7 @@ function installCouchpotato () {
 
     dialog --title "COUCHPOTATO" --infobox "Downloading the latest version of CouchPotato" 6 50
     sleep 2
-    git clone git://github.com/RuudBurger/CouchPotatoServer.git /home/${UNAME}/.couchpotato >> ${LOGFILE}
+    git clone git://github.com/RuudBurger/CouchPotatoServer.git /home/${UNAME}/.couchpotato > /dev/null 2>&1
 
     dialog --title "COUCHPOTATO" --infobox "Installing upstart configurations" 6 50
     sleep 2
@@ -1129,8 +1129,6 @@ respawn limit 10 10
 
 exec  /home/${UNAME}/.couchpotato/CouchPotato.py --config_file /home/${UNAME}/.couchpotato/settings.conf --data_dir /home/${UNAME}/.couchpotato/
 EOF
-
-PASSWORDHASH=${PASSWORD} | md5sum
 
 cat << EOF > /home/${UNAME}/.couchpotato/settings.conf
 [core]
@@ -1152,7 +1150,7 @@ proxy_username =
 ipv6 = 0
 debug = 0
 launch_browser = 0
-password = ${PASSWORDHASH}
+password = ${PASSWORD}
 port = 5050
 url_base = /couchpotato
 show_wizard = 0
@@ -1743,6 +1741,10 @@ always_search = False
 run_on_launch = 0
 search_on_add = 1
 EOF
+
+    dialog --title "COUCHPOTATO" --infobox "Starting CouchPotato for the first time" 6 50
+    (python /home/${UNAME}/.couchpotato/CouchPotato.py) & pid=$!
+    (sleep 10 && kill -9 $pid) &
 }
 
 function installSABnzbd () {
@@ -1978,7 +1980,7 @@ function installSickRage () {
 
     dialog --title "SickRage" --infobox "Downloading the latest version of SickRage" 6 50
     sleep 2
-    sudo git clone https://github.com/SickRage/SickRage.git /home/${UNAME}/.sickrage >> ${LOGFILE}
+    sudo git clone https://github.com/SickRage/SickRage.git /home/${UNAME}/.sickrage > /dev/null 2>&1
 
     dialog --title "SickRage" --infobox "Installing upstart configurations" 6 50
     sleep 2
@@ -2072,19 +2074,19 @@ if [[ ${APPS} == *ReverseProxy* ]]; then
 fi
 
 if [[ ${APPS} == *SABnzbd* ]]; then
-    start sabnzbd
+    start sabnzbd  > /dev/null 2>&1
 fi
 
 if [[ ${APPS} == *Sonarr* ]]; then
-    start sonarr
+    start sonarr  > /dev/null 2>&1
 fi
 
 if [[ ${APPS} == *CouchPotato* ]]; then
-    start couchpotato
+    start couchpotato  > /dev/null 2>&1
 fi
 
 if [[ ${APPS} == *SickRage* ]]; then
-    start sickrage
+    start sickrage  > /dev/null 2>&1
 fi
 
 sleep 10
