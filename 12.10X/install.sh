@@ -1244,8 +1244,8 @@ function installCouchpotato () {
     dialog --title "Couchpotato" --infobox "Downloading the latest version of CouchPotato" 6 50
     git clone git://github.com/RuudBurger/CouchPotatoServer.git /home/${UNAME}/.couchpotato > /dev/null 2>&1
 
-    sudo chown -R ${UNAME}: /home/${UNAME}/.couchpotato
-    sudo chmod -R 755 /home/${UNAME}/.couchpotato
+    sudo chown -R ${UNAME}: /home/${UNAME}/.couchpotato > /dev/null 2>&1
+    sudo chmod -R 755 /home/${UNAME}/.couchpotato > /dev/null 2>&1
 
     dialog --title "Couchpotato" --infobox "Installing upstart configurations" 6 50
     sleep 2
@@ -1266,16 +1266,16 @@ exec python /home/${UNAME}/.couchpotato/CouchPotato.py
 EOF
 
     dialog --title "Couchpotato" --infobox "Starting CouchPotato for the first time" 6 50
-    sudo service couchpotato start
+    sudo service couchpotato start > /dev/null 2>&1
 
     while [ ! -f /home/${UNAME}/.couchpotato/settings.conf ]; do
         sleep 5
-        sudo service couchpotato restart
+        sudo service couchpotato restart > /dev/null 2>&1
     done
 
     PASSWORDHASH=$(printf '%s' ${PASSWORD} | md5sum | cut -d ' ' -f 1)
 
-    sudo service couchpotato stop
+    sudo service couchpotato stop > /dev/null 2>&1
     sudo sed -i "/\[core\]/,/^\$/s/api_key =/api_key = $API/g" /home/${UNAME}/.couchpotato/settings.conf
     sudo sed -i "/\[core\]/,/^\$/s/username =/username = $USERNAME/g" /home/${UNAME}/.couchpotato/settings.conf
     sudo sed -i "/\[core\]/,/^\$/s/permission_file = 0644/permission_file = 0755/g" /home/${UNAME}/.couchpotato/settings.conf
@@ -1320,7 +1320,7 @@ EOF
         sudo sed -i "/\[$UNAME\]/,/^\$/s/password =/password = $PASSWORDHASH" /home/${UNAME}/.couchpotato/settings.conf
     fi
 
-    sudo service couchpotato start
+    sudo service couchpotato start > /dev/null 2>&1
     dialog --title "FINISHED" --infobox "Installation of Couchpotato is successful" 6 50
 }
 
@@ -1559,8 +1559,8 @@ function installSickRage () {
     sleep 2
     sudo git clone https://github.com/SickRage/SickRage.git /home/${UNAME}/.sickrage > /dev/null 2>&1
 
-    sudo chown -R ${UNAME}: /home/${UNAME}/.sickrage
-    sudo chmod -R 755 /home/${UNAME}/.sickrage
+    sudo chown -R ${UNAME}: /home/${UNAME}/.sickrage > /dev/null 2>&1
+    sudo chmod -R 755 /home/${UNAME}/.sickrage > /dev/null 2>&1
 
     dialog --title "SickRage" --infobox "Installing upstart configurations for SickRage" 6 50
     sleep 2
@@ -1579,14 +1579,14 @@ exec /home/${UNAME}/.sickrage/SickBeard.py
 EOF
 
     dialog --title "SickRage" --infobox "Starting SickRage for the first time" 6 50
-    sudo service sickrage start
+    sudo service sickrage start > /dev/null 2>&1
 
     while [ ! -f /home/${UNAME}/.sickrage/config.ini ]; do
         sleep 5
-        sudo service sickrage restart
+        sudo service sickrage restart > /dev/null 2>&1
     done
 
-    sudo service sickrage stop
+    sudo service sickrage stop > /dev/null 2>&1
     dialog --title "SickRage" --infobox "Writing config.ini for SickRage" 6 50
     sudo sed -i "/\[General\]/,/^\$/s/web_root = \"\"/web_root = \"/sickrage\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
     sudo sed -i "/\[General\]/,/^\$/s/web_username = \"\"/web_username = \"$UNAME\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
@@ -1632,7 +1632,7 @@ EOF
     sudo sed -i "/\[FailedDownloads\]/,/^\$/s/use_failed_downloads = 0/use_failed_downloads = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
     sudo sed -i "/\[FailedDownloads\]/,/^\$/s/delete_failed = 0/delete_failed = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
 
-    sudo service sickrage start
+    sudo service sickrage start > /dev/null 2>&1
     dialog --title "FINISHED" --infobox "Installation of SickRage is successful" 6 50
 }
 
