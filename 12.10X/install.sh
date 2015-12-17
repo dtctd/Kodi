@@ -87,6 +87,12 @@ fi
 
 if [[ ${APPS} == *KODI* ]]; then
     KODI=1
+    GFX_CARD=$(lspci |grep VGA |awk -F: {' print $3 '} |awk {'print $1'} |tr [a-z] [A-Z])
+
+    KODI_PPA=$(dialog --radiolist "Choose which Kodi version you would like:" 20 50 3 \
+    1 "Official PPA - Install the release version." on \
+    2 "Unstable PPA - Install the Alpha/Beta/RC version." off 3>&1 1>&2 2>&3)
+
     if getent passwd kodi > /dev/null 2>&1; then
 	    echo "User KODI already exists"
 	    KODI_USER="kodi"
@@ -140,12 +146,6 @@ MESA_PPA="ppa:wsnipex/mesa"
 
 DIALOG_WIDTH=70
 SCRIPT_TITLE="KODI ubuntu universal installer v$SCRIPT_VERSION for Ubuntu 12.04 to 14.04 by Me"
-
-GFX_CARD=$(lspci |grep VGA |awk -F: {' print $3 '} |awk {'print $1'} |tr [a-z] [A-Z])
-
-KODI_PPA=$(dialog --radiolist "Choose which Kodi version you would like:" 20 50 3 \
-1 "Official PPA - Install the release version." on \
-2 "Unstable PPA - Install the Alpha/Beta/RC version." off 3>&1 1>&2 2>&3)
 
 # import Ubuntu release variables
 . /etc/lsb-release
@@ -1239,12 +1239,10 @@ function installCouchpotato () {
     apt-get -y install git-core python >> ${LOGFILE}
 
     dialog --title "Couchpotato" --infobox "Killing and version of couchpotato currently running" 6 50
-    sleep 2
     killall couchpotato* >> ${LOGFILE}
 
     dialog --title "Couchpotato" --infobox "Downloading the latest version of CouchPotato" 6 50
-    sleep 2
-    git clone git://github.com/RuudBurger/CouchPotatoServer.git /home/${UNAME}/.couchpotato > /dev/null 2>&1
+        git clone git://github.com/RuudBurger/CouchPotatoServer.git /home/${UNAME}/.couchpotato > /dev/null 2>&1
 
     sudo chown -R ${UNAME}: /home/${UNAME}/.couchpotato
     sudo chmod -R 755 /home/${UNAME}/.couchpotato
@@ -1642,6 +1640,8 @@ sudo chown -R ${UNAME}:${UNAME} ${DOWNLOADDIR}/Downloads > /dev/null 2>&1
 sudo chmod -R 775 ${MOVIEDIR}/Movies > /dev/null 2>&1
 sudo chmod -R 775 ${TVSHOWDIR}/TVShows > /dev/null 2>&1
 sudo chmod -R 775 ${DOWNLOADDIR}/Downloads > /dev/null 2>&1
+
+update
 
 if [[ ${APPS} == *SABnzbd* ]]; then
     installSABnzbd
