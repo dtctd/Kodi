@@ -1586,6 +1586,7 @@ EOF
         sudo service sickrage restart
     done
 
+    sudo service sickrage stop
     dialog --title "SickRage" --infobox "Writing config.ini for SickRage" 6 50
     sudo sed -i "/\[General\]/,/^\$/s/web_root = \"\"/web_root = \"/sickrage\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
     sudo sed -i "/\[General\]/,/^\$/s/web_username = \"\"/web_username = \"$UNAME\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
