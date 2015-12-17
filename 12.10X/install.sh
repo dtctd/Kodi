@@ -1242,7 +1242,7 @@ function installCouchpotato () {
     killall couchpotato* >> ${LOGFILE}
 
     dialog --title "Couchpotato" --infobox "Downloading the latest version of CouchPotato" 6 50
-        git clone git://github.com/RuudBurger/CouchPotatoServer.git /home/${UNAME}/.couchpotato > /dev/null 2>&1
+    git clone git://github.com/RuudBurger/CouchPotatoServer.git /home/${UNAME}/.couchpotato > /dev/null 2>&1
 
     sudo chown -R ${UNAME}: /home/${UNAME}/.couchpotato
     sudo chmod -R 755 /home/${UNAME}/.couchpotato
@@ -1559,6 +1559,9 @@ function installSickRage () {
     sleep 2
     sudo git clone https://github.com/SickRage/SickRage.git /home/${UNAME}/.sickrage > /dev/null 2>&1
 
+    sudo chown -R ${UNAME}: /home/${UNAME}/.sickrage
+    sudo chmod -R 755 /home/${UNAME}/.sickrage
+
     dialog --title "SickRage" --infobox "Installing upstart configurations for SickRage" 6 50
     sleep 2
 
@@ -1575,50 +1578,60 @@ respawn limit 5 30
 exec /home/${UNAME}/.sickrage/SickBeard.py
 EOF
 
-    dialog --title "SickRage" --infobox "Writing config.ini for SickRage" 6 50
-    sudo sed -i "/\[General\]/,/^\$/s/web_root = \"\"/web_root = \"/sickrage\"/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/web_username = \"\"/web_username = \"$UNAME\"/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/web_password = \"\"/web_password = \"$PASSWORD\"/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/quality_default = 3/quality_default = 22053375/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/auto_update = 0/auto_update = 1/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/launch_browser = 1/launch_browser = 0/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/root_dirs \"\"/root_dirs = \"0\|\\$TVSHOWDIR\"/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/tv_download_dir \"\"/tv_download_dir = \"\\$DOWNLOADDIR\/Download\/Complete\"/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/keep_processed_dir = 1/keep_processed_dir = 0/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/process_method = copy/process_method = move/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/del_rar_contents = 0/del_rar_contents = 1/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/move_associated_files = 0/move_associated_files = 1/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/process_automatically = 0/process_automatically = 1/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/unpack = 0/unpack = 1/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[General\]/,/^\$/s/create_missing_show_dirs = 0/create_missing_show_dirs = 1/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[Blackhole\]/,/^\$/s/torrent_dir = \"\"/torrent_dir = \"\\$DOWNLOADDIR\/Downloads\/torrents\"/g" /home/${UNAME}/.sickrage/config.ini
-    if [[ ${APPS} == *Deluge* ]]; then
-        sudo sed -i "/\[TORRENT\]/,/^\$/s/torrent_password = \"\"/torrent_password = \"$PASSWORD\"/g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[TORRENT\]/,/^\$/s/torrent_host = \"\"/torrent_host = http:\/\/localhost:8112\//g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[TORRENT\]/,/^\$/s/torrent_path = \"\"/torrent_path = \\$DOWNLOADDIR\/Downloads\/Complete/g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[TORRENT\]/,/^\$/s/torrent_label = \"\"/torrent_label = tvshow/g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[TORRENT\]/,/^\$/s/torrent_label_anime = \"\"/torrent_label_anime = animeshow/g" /home/${UNAME}/.sickrage/config.ini
-    fi
-    if [[ ${APPS} == *KODI* ]]; then
-        sudo sed -i "/\[KODI\]/,/^\$/s/use_kodi = 0/use_kodi = 1/g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_notify_onsnatch = 0/kodi_notify_onsnatch = 1/g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_notify_ondownload = 0/kodi_notify_ondownload = 1/g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_update_library = 0/kodi_update_library = 1/g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_update_full = 0/kodi_update_full = 1/g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_host = \"\"/kodi_host = localhost:8080/g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_username = \"\"/kodi_username = $UNAME/g" /home/${UNAME}/.sickrage/config.ini
-        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_password = \"\"/kodi_password = $PASSWORD/g" /home/${UNAME}/.sickrage/config.ini
-    fi
-    sudo sed -i "/\[Subtitles\]/,/^\$/s/use_subtitles = 0/use_subtitles = 1/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[Subtitles\]/,/^\$/s/subtitles_languages = \"\"/subtitles_languages = \"dut,eng\"/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[Subtitles\]/,/^\$/s/SUBTITLES_SERVICES_LIST = \"\"/SUBTITLES_SERVICES_LIST = \"addic7ed,legendastv,napiprojekt,opensubtitles,podnapisi,thesubdb,tvsubtitles\"/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[Subtitles\]/,/^\$/s/SUBTITLES_SERVICES_ENABLED = \"\"/SUBTITLES_SERVICES_ENABLED = 0\|0\|1\|0\|1\|1\|1/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[Subtitles\]/,/^\$/s/subtitles_default = 0/subtitles_default = 1/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[FailedDownloads\]/,/^\$/s/use_failed_downloads = 0/use_failed_downloads = 1/g" /home/${UNAME}/.sickrage/config.ini
-    sudo sed -i "/\[FailedDownloads\]/,/^\$/s/delete_failed = 0/delete_failed = 1/g" /home/${UNAME}/.sickrage/config.ini
+    dialog --title "SickRage" --infobox "Starting SickRage for the first time" 6 50
+    sudo service sickrage start
 
-    sudo chown -R ${UNAME}: /home/${UNAME}/.sickrage
-    sudo chmod -R 755 /home/${UNAME}/.sickrage
+    while [ ! -f /home/${UNAME}/.sickrage/config.ini ]; do
+        sleep 5
+        sudo service sickrage restart
+    done
+
+    dialog --title "SickRage" --infobox "Writing config.ini for SickRage" 6 50
+    sudo sed -i "/\[General\]/,/^\$/s/web_root = \"\"/web_root = \"/sickrage\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/web_username = \"\"/web_username = \"$UNAME\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/web_password = \"\"/web_password = \"$PASSWORD\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/quality_default = 3/quality_default = 22053375/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/auto_update = 0/auto_update = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/launch_browser = 1/launch_browser = 0/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/root_dirs \"\"/root_dirs = \"0\|\\$TVSHOWDIR\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/tv_download_dir \"\"/tv_download_dir = \"\\$DOWNLOADDIR\/Download\/Complete\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/keep_processed_dir = 1/keep_processed_dir = 0/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/process_method = copy/process_method = move/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/del_rar_contents = 0/del_rar_contents = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/move_associated_files = 0/move_associated_files = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/process_automatically = 0/process_automatically = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/unpack = 0/unpack = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[General\]/,/^\$/s/create_missing_show_dirs = 0/create_missing_show_dirs = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[Blackhole\]/,/^\$/s/torrent_dir = \"\"/torrent_dir = \"\\$DOWNLOADDIR\/Downloads\/torrents\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+
+    if [[ ${APPS} == *Deluge* ]]; then
+        sudo sed -i "/\[TORRENT\]/,/^\$/s/torrent_password = \"\"/torrent_password = \"$PASSWORD\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[TORRENT\]/,/^\$/s/torrent_host = \"\"/torrent_host = http:\/\/localhost:8112\//g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[TORRENT\]/,/^\$/s/torrent_path = \"\"/torrent_path = \\$DOWNLOADDIR\/Downloads\/Complete/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[TORRENT\]/,/^\$/s/torrent_label = \"\"/torrent_label = tvshow/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[TORRENT\]/,/^\$/s/torrent_label_anime = \"\"/torrent_label_anime = animeshow/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    fi
+
+    if [[ ${APPS} == *KODI* ]]; then
+        sudo sed -i "/\[KODI\]/,/^\$/s/use_kodi = 0/use_kodi = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_notify_onsnatch = 0/kodi_notify_onsnatch = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_notify_ondownload = 0/kodi_notify_ondownload = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_update_library = 0/kodi_update_library = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_update_full = 0/kodi_update_full = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_host = \"\"/kodi_host = localhost:8080/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_username = \"\"/kodi_username = $UNAME/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+        sudo sed -i "/\[KODI\]/,/^\$/s/kodi_password = \"\"/kodi_password = $PASSWORD/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    fi
+
+    sudo sed -i "/\[Subtitles\]/,/^\$/s/use_subtitles = 0/use_subtitles = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[Subtitles\]/,/^\$/s/subtitles_languages = \"\"/subtitles_languages = \"dut,eng\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[Subtitles\]/,/^\$/s/SUBTITLES_SERVICES_LIST = \"\"/SUBTITLES_SERVICES_LIST = \"addic7ed,legendastv,napiprojekt,opensubtitles,podnapisi,thesubdb,tvsubtitles\"/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[Subtitles\]/,/^\$/s/SUBTITLES_SERVICES_ENABLED = \"\"/SUBTITLES_SERVICES_ENABLED = 0\|0\|1\|0\|1\|1\|1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[Subtitles\]/,/^\$/s/subtitles_default = 0/subtitles_default = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[FailedDownloads\]/,/^\$/s/use_failed_downloads = 0/use_failed_downloads = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+    sudo sed -i "/\[FailedDownloads\]/,/^\$/s/delete_failed = 0/delete_failed = 1/g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
+
+    sudo service sickrage start
     dialog --title "FINISHED" --infobox "Installation of SickRage is successful" 6 50
 }
 
