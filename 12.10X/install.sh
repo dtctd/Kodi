@@ -105,7 +105,6 @@ if [[ ${APPS} == *KODI* ]]; then
     fi
 fi
 ### Finished gathering all input
-
 THIS_FILE=$0
 SCRIPT_VERSION="0.1"
 VIDEO_DRIVER=""
@@ -713,27 +712,21 @@ function removeAutorunFiles()
 {
     if [ -e "$KODI_INIT_FILE" ]; then
         showInfo "Removing existing autorun script..."
-        sudo update-rc.d kodi remove > /dev/null 2>&1
-        sudo rm "$KODI_INIT_FILE" > /dev/null 2>&1
 
         if [ -e "$KODI_INIT_CONF_FILE" ]; then
 		    sudo rm "$KODI_INIT_CONF_FILE" > /dev/null 2>&1
-	    fi
-	    
-	    if [ -e "$KODI_CUSTOM_EXEC" ]; then
-	        sudo rm "$KODI_CUSTOM_EXEC" > /dev/null 2>&1
 	    fi
 	    
 	    if [ -e "$KODI_XSESSION_FILE" ]; then
 	        sudo rm "$KODI_XSESSION_FILE" > /dev/null 2>&1
 	    fi
 
-	    if [ -e "$DELUGED_INIT_CONF_FILE" ]; then
-	        sudo rm "$DELUGED_INIT_CONF_FILE" > /dev/null 2>&1
+	    if [ -e "/etc/init/deluged.conf" ]; then
+	        sudo rm "/etc/init/deluged.conf" > /dev/null 2>&1
 	    fi
 
-	    if [ -e "$DELUGEWEB_INIT_CONF_FILE" ]; then
-	        sudo rm "$DELUGEWEB_INIT_CONF_FILE" > /dev/null 2>&1
+	    if [ -e "/etc/init/deluge/web.conf" ]; then
+	        sudo rm "/etc/init/deluge/web.conf" > /dev/null 2>&1
 	    fi
 	    
 	    showInfo "Old autorun script successfully removed"
@@ -750,7 +743,7 @@ function installKodiUpstartScript() {
 	    IS_MOVED=$(move ${TEMP_DIRECTORY}"kodi_upstart_script_2" "$KODI_INIT_CONF_FILE")
 
 	    if [ "$IS_MOVED" == "1" ]; then
-	        sudo ln -s "$UPSTART_JOB_FILE" "$KODI_INIT_FILE" > /dev/null 2>&1
+	        sudo ln -s "$UPSTART_JOB_FILE" "$KODI_INIT_CONF_FILE" > /dev/null 2>&1
 	    else
 	        showError "KODI upstart configuration failed"
 	    fi
@@ -1137,7 +1130,7 @@ server {
 }
 EOF
 
-    htpasswd -b -c /etc/nginx/htpasswd ${UNAME} ${PASSWORD}
+    htpasswd -b -c /etc/nginx/htpasswd ${UNAME} ${PASSWORD} > /dev/null 2>&1
 
     unlink /etc/nginx/sites-enabled/default > /dev/null 2>&1
     ln -s /etc/nginx/sites-available/reverse /etc/nginx/sites-enabled/reverse > /dev/null 2>&1
@@ -1276,48 +1269,48 @@ EOF
     PASSWORDHASH=$(printf '%s' ${PASSWORD} | md5sum | cut -d ' ' -f 1)
 
     sudo service couchpotato stop > /dev/null 2>&1
-    sudo sed -i "/\[core\]/,/^\$/s/api_key =/api_key = $API/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[core\]/,/^\$/s/username =/username = $USERNAME/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[core\]/,/^\$/s/permission_file = 0644/permission_file = 0755/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[core\]/,/^\$/s/launch_browser = True/launch_browser = False/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[core\]/,/^\$/s/password =/password = $PASSWORDHASH" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[core\]/,/^\$/s/url_base =/url_base = couchpotato/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[core\]/,/^\$/s/show_wizard = 1/show_wizard = 0/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[updater\]/,/^$/s/enabled = False/enabled = True/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[manage\]/,/^\$/s/enabled = False/enabled = True/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[manage\]/,/^\$/s/library =/library = \\$MOVIEDIR\/Movies\//g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[renamer\]/,/^\$/s/from =/from = \\$DOWNLOADDIR\/Downloads\/Complete\//g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[renamer\]/,/^\$/s/to =/to = \\$MOVIEDIR\/Movies\//g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[renamer\]/,/^\$/s/unrar_modify_date = False/unrar_modify_date = True/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[renamer\]/,/^\$/s/file_action = link/file_action = move/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[renamer\]/,/^\$/s/enabled = False/enabled = True/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[renamer\]/,/^\$/s/unrar = False/unrar = True/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[renamer\]/,/^\$/s/force_every = 2/force_every = 1/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[subtitle\]/,/^\$/s/languages =/languages = en/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[subtitle\]/,/^\$/s/enabled = False/enabled = True/g" /home/${UNAME}/.couchpotato/settings.conf
-    sudo sed -i "/\[blackhole\]/,/^\$s/directory = \/home\/$UNAME/directory = \\${DOWNLOADDIR}\/Downloads\/Torrents/\/g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[core\]/,/^\$/s#api_key =#api_key = $API#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[core\]/,/^\$/s#username =#username = $USERNAME#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[core\]/,/^\$/s#permission_file = 0644#permission_file = 0755#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[core\]/,/^\$/s#launch_browser = True#launch_browser = False#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[core\]/,/^\$/s#password =#password = $PASSWORDHASH#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[core\]/,/^\$/s#url_base =#url_base = couchpotato#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[core\]/,/^\$/s#show_wizard = 1#show_wizard = 0#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[updater\]/,/^$/s#enabled = False#enabled = True#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[manage\]/,/^\$/s#enabled = False#enabled = True#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[manage\]/,/^\$/s#library =#library = $MOVIEDIR/Movies/#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[renamer\]/,/^\$/s#from =#from = $DOWNLOADDIR/Downloads/Complete#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[renamer\]/,/^\$/s#to =#to = $MOVIEDIR/Movies/#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[renamer\]/,/^\$/s#unrar_modify_date = False#unrar_modify_date = True#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[renamer\]/,/^\$/s#file_action = link#file_action = move#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[renamer\]/,/^\$/s#enabled = False#enabled = True#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[renamer\]/,/^\$/s#unrar = False#unrar = True#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[renamer\]/,/^\$/s#force_every = 2#force_every = 1#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[subtitle\]/,/^\$/s#languages =#languages = en#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[subtitle\]/,/^\$/s#enabled = False#enabled = True#g" /home/${UNAME}/.couchpotato/settings.conf
+    sudo sed -i "/\[blackhole\]/,/^\$s#directory = /home/$UNAME/directory = $DOWNLOADDIR/Downloads/Torrents#g" /home/${UNAME}/.couchpotato/settings.conf
     if [[ ${APPS} == *Deluge* ]]; then
-        sudo sed -i "/\[deluge\]/,/^\$/s/username =/username = $USERNAME/g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[deluge\]/,/^\$/s/enabled = False/enabled = True/g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[deluge\]/,/^\$/s#username =#username = $USERNAME#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[deluge\]/,/^\$/s#enabled = False#enabled = True#g" /home/${UNAME}/.couchpotato/settings.conf
     fi
     if [[ ${APPS} == *SABnzbd* ]]; then
-        sudo sed -i "/\[sabnzbd\]/,/^\$/s/category =/category = Movies/g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[sabnzbd\]/,/^\$/s/enabled = False/enabled = True/g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[sabnzbd\]/,/^\$/s/api_key =/api_key = $API/g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[sabnzbd\]/,/^\$/s#category =#category = Movies#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[sabnzbd\]/,/^\$/s#enabled = False#enabled = True#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[sabnzbd\]/,/^\$/s#api_key =#api_key = $API#g" /home/${UNAME}/.couchpotato/settings.conf
     fi
     if [[ ${APPS} == *Transmission* ]]; then
-        sudo sed -i "/\[transmission\]/,/^\$/s/username =/username = admin/g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[transmission\]/,/^\$/s/stalled_as_failed = True/stalled_as_failed = False/g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[transmission\]/,/^\$/s/enabled = False/enabled = True/g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[transmission\]/,/^\$/s/directory =/directory = \\$MOVIEDIR\/Movies\//g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[transmission\]/,/^\$/s/password =/password = $PASSWORD" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[transmission\]/,/^\$/s#username =#username = admin#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[transmission\]/,/^\$/s#stalled_as_failed = True#stalled_as_failed = False#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[transmission\]/,/^\$/s#enabled = False#enabled = True#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[transmission\]/,/^\$/s#directory =#directory = $MOVIEDIR/Movies#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[transmission\]/,/^\$/s#password =#password = $PASSWORD#g" /home/${UNAME}/.couchpotato/settings.conf
     fi
     if [[ ${APPS} == *Kodi* ]]; then
-        sudo sed -i "0,/[xbmc]/s/[xbmc]/[$UNAME]/g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[$UNAME\]/,/^\$/s/username = xbmc/username = $USERNAME/g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[$UNAME\]/,/^\$/s/enabled = False/enabled = True/g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[$UNAME\]/,/^\$/s/directory =/directory = \\$MOVIEDIR\/Movies\//g" /home/${UNAME}/.couchpotato/settings.conf
-        sudo sed -i "/\[$UNAME\]/,/^\$/s/password =/password = $PASSWORDHASH" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "0,/[xbmc]/s#[xbmc]#[$UNAME]#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[$UNAME\]/,/^\$/s#username = xbmc#username = $USERNAME#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[$UNAME\]/,/^\$/s#enabled = False#enabled = True#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[$UNAME\]/,/^\$/s#directory =#directory = $MOVIEDIR/Movies#g" /home/${UNAME}/.couchpotato/settings.conf
+        sudo sed -i "/\[$UNAME\]/,/^\$/s#password =#password = $PASSWORDHASH#g" /home/${UNAME}/.couchpotato/settings.conf
     fi
 
     sudo service couchpotato start > /dev/null 2>&1
