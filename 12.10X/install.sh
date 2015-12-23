@@ -32,7 +32,7 @@ if [ ! -d "/home/$UNAME" ]; then
   fi
 fi
 
-DLCLIENT=$(dialog --checklist "Choose which download method you would like installed:" 12 50 4 \
+DLCLIENT=$(dialog --checklist "Choose which download method you would like installed:" 12 50 8 off \
 "Torrents" "" on \
 "Newsgroups" "" on 3>&1 1>&2 2>&3)
 
@@ -1267,6 +1267,10 @@ EOF
         sudo service couchpotato restart > /dev/null 2>&1
     done
 
+    if [ -e "/home/${UNAME}/.couchpotato/settings.conf" ]; then
+	        sudo mv /home/${UNAME}/.couchpotato/settings.conf /home/${UNAME}/.couchpotato/settings.conf.bak > /dev/null 2>&1
+	fi
+
     PASSWORDHASH=$(printf '%s' ${PASSWORD} | md5sum | cut -d ' ' -f 1)
 
     sudo service couchpotato stop > /dev/null 2>&1
@@ -1582,6 +1586,11 @@ EOF
 
     sudo service sickrage stop > /dev/null 2>&1
     dialog --title "SickRage" --infobox "Writing config.ini for SickRage" 6 50
+
+    if [ -e "/home/${UNAME}/.sickrage/config.ini" ]; then
+	    sudo mv /home/${UNAME}/.sickrage/config.ini /home/${UNAME}/.sickrage/config.ini.bak > /dev/null 2>&1
+	fi
+
     sudo sed -i "/\[General\]/,/^\$/s#web_root = \"\"#web_root = \"/sickrage\"#g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
     sudo sed -i "/\[General\]/,/^\$/s#web_username = \"\"#web_username = \"$UNAME\"#g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
     sudo sed -i "/\[General\]/,/^\$/s#web_password = \"\"#web_password = \"$PASSWORD\"#g" /home/${UNAME}/.sickrage/config.ini  >> ${LOGFILE}
@@ -1717,6 +1726,6 @@ if [[ ${APPS} == *ReverseProxy* ]]; then
     fi
 fi
 
-dialog --title "FINISHED" --msgbox "All done. A restart will be triggered within 10-20 seconds" 10 50
+dialog --title "FINISHED" --msgbox "All done. A restart will be triggered" 10 50
 
 rebootMachine
